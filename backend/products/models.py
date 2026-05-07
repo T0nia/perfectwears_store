@@ -14,7 +14,7 @@ class Category(models.Model):
 class Product(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True, blank=True)  # ✅ ADD THIS
+    slug = models.SlugField(unique=True, blank=True)  
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
