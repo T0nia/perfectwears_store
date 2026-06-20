@@ -31,8 +31,10 @@ class Product(models.Model):
     image = models.ImageField(upload_to="products/")
 
     size = models.CharField(
-        max_length=100,
-        help_text="Example: S, M, L, XL"
+    max_length=100,
+    blank=True,
+    null=True,
+    help_text="Example: S, M, L, XL (optional depending on product type)"
     )
 
     stock = models.IntegerField(default=0)
