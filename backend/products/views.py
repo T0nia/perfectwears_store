@@ -1,6 +1,4 @@
 # perfectwears_store\backend\products\views.py
-
-from django.db.models import Count
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -18,7 +16,10 @@ def product_list(request):
 @api_view(['GET'])
 def product_detail(request, slug):
     try:
-        product = Product.objects.get(slug=slug, is_active=True)
+        product = Product.objects.get(
+            slug=slug,
+            is_active=True
+        )
     except Product.DoesNotExist:
         return Response(
             {'error': 'Product not found'},
@@ -31,26 +32,63 @@ def product_detail(request, slug):
 
 @api_view(['GET'])
 def category_list(request):
-    categories = Category.objects.annotate(
-        product_count=Count('products')
-    ).order_by('name')
+    categories = Category.objects.all()
 
-    serializer = CategorySerializer(categories, many=True)
-    return Response(serializer.data)
+    data = []
+
+    for category in categories:
+        data.append({
+            'id': category.id,
+            'name': category.name,
+            'slug': category.slug,
+            'product_count': category.products.filter(
+                is_active=True
+            ).count()
+        })
+
+    return Response(data)
 
 
 @api_view(['GET'])
 def category_detail(request, slug):
     try:
-        category = Category.objects.annotate(
-            product_count=Count('products')
-        ).get(slug=slug)
-
+        category = Category.objects.get(slug=slug)
     except Category.DoesNotExist:
         return Response(
             {'error': 'Category not found'},
             status=404
         )
 
-    serializer = CategorySerializer(category)
+    data = {
+        'id': category.id,
+        'name': category.name,
+        'slug': category.slug,
+        'product_count': category.products.filter(
+            is_active=True
+        ).count()
+    }
+
+    return Response(data)
+
+
+@api_view(['GET'])
+def category_products(request, slug):
+    try:
+        category = Category.objects.get(slug=slug)
+    except Category.DoesNotExist:
+        return Response(
+            {'error': 'Category not found'},
+            status=404
+        )
+
+    products = Product.objects.filter(
+        category=category,
+        is_active=True
+    )
+
+    serializer = ProductSerializer(
+        products,
+        many=True
+    )
+
     return Response(serializer.data)
