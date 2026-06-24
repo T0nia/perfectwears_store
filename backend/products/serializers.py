@@ -1,13 +1,18 @@
-# perfectwears_store\backend\products\serializers.py
-
 from rest_framework import serializers
 from .models import Product, Category
 
 
 class CategorySerializer(serializers.ModelSerializer):
+    product_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug']
+        fields = [
+            'id',
+            'name',
+            'slug',
+            'product_count',
+        ]
 
 
 class ProductSerializer(serializers.ModelSerializer):
