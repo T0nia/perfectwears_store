@@ -17,6 +17,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+    sizes = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -27,8 +28,11 @@ class ProductSerializer(serializers.ModelSerializer):
             'price',
             'category',
             'image',
-            'size',
+            'sizes',
             'stock',
             'is_active',
             'created_at',
         ]
+
+    def get_sizes(self, obj):
+        return obj.get_sizes()
