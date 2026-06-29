@@ -26,51 +26,51 @@ class Order(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
-        editable=False
+        editable=False,
     )
 
     cart = models.OneToOneField(
         Cart,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
 
     customer_name = models.CharField(
-        max_length=255
+        max_length=255,
     )
 
     customer_email = models.EmailField()
 
     customer_phone = models.CharField(
-        max_length=20
+        max_length=20,
     )
 
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=0
+        default=0,
     )
 
     payment_status = models.CharField(
         max_length=20,
         choices=PAYMENT_STATUS,
-        default="PENDING"
+        default="PENDING",
     )
 
     order_status = models.CharField(
         max_length=20,
         choices=ORDER_STATUS,
-        default="PENDING"
+        default="PENDING",
     )
 
     delivery_method = models.CharField(
         max_length=20,
         choices=DELIVERY_METHOD,
         blank=True,
-        null=True
+        null=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     def __str__(self):

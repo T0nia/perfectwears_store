@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -11,6 +13,7 @@ def create_order(request):
     cart_id = request.data.get("cart_id")
     customer_name = request.data.get("customer_name")
     customer_email = request.data.get("customer_email")
+    customer_phone = request.data.get("customer_phone")
 
     # Required fields
     if not cart_id:
@@ -28,6 +31,12 @@ def create_order(request):
     if not customer_email:
         return Response(
             {"error": "customer_email is required"},
+            status=400,
+        )
+
+    if not customer_phone:
+        return Response(
+            {"error": "customer_phone is required"},
             status=400,
         )
 
@@ -61,11 +70,19 @@ def create_order(request):
             status=400,
         )
 
+    # Calculate total
+    total_amount = Decimal("0.00")
+
+    for item in cart.items.all():
+        total_amount += item.product.price * item.quantity
+
     # Create order
     order = Order.objects.create(
         cart=cart,
         customer_name=customer_name,
         customer_email=customer_email,
+        customer_phone=customer_phone,
+        total_amount=total_amount,
     )
 
     serializer = OrderSerializer(order)
