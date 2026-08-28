@@ -56,6 +56,13 @@ class Order(models.Model):
         default="PENDING",
     )
 
+    payment_reference = models.CharField(
+        max_length=255,
+        unique=True,
+        blank=True,
+        null=True,
+    )
+
     order_status = models.CharField(
         max_length=20,
         choices=ORDER_STATUS,

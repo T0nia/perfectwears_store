@@ -87,4 +87,7 @@ def create_order(request):
 
     serializer = OrderSerializer(order)
 
-    return Response(serializer.data, status=201)
+    return Response(
+        serializer.data,
+        status=201,
+    )

@@ -6,6 +6,7 @@ from .models import Order
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
+
         fields = [
             "id",
             "cart",
@@ -13,12 +14,15 @@ class OrderSerializer(serializers.ModelSerializer):
             "customer_email",
             "customer_phone",
             "total_amount",
+            "paystack_reference",
             "payment_status",
             "order_status",
             "delivery_method",
             "created_at",
         ]
+
         read_only_fields = [
+            "paystack_reference",
             "payment_status",
             "order_status",
             "delivery_method",
