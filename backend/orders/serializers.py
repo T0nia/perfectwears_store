@@ -14,7 +14,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "customer_email",
             "customer_phone",
             "total_amount",
-            "paystack_reference",
+            "payment_reference",
             "payment_status",
             "order_status",
             "delivery_method",
@@ -22,7 +22,7 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = [
-            "paystack_reference",
+            "payment_reference",
             "payment_status",
             "order_status",
             "delivery_method",
