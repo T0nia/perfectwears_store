@@ -9,7 +9,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
+# ============================================================
 # SECURITY
+# ============================================================
+
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
     "django-insecure-change-this-later",
@@ -24,12 +27,29 @@ ALLOWED_HOSTS = [
 ]
 
 
-# Paystack
+# ============================================================
+# PAYSTACK
+# ============================================================
+
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
 PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "")
 
 
-# Applications
+# ============================================================
+# CLOUDINARY
+# ============================================================
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+    "API_KEY": os.getenv("CLOUDINARY_API_KEY", ""),
+    "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", ""),
+}
+
+
+# ============================================================
+# APPLICATIONS
+# ============================================================
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -37,6 +57,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
+    "cloudinary_storage",
 
     "rest_framework",
     "corsheaders",
@@ -47,9 +69,13 @@ INSTALLED_APPS = [
 ]
 
 
-# Middleware
+# ============================================================
+# MIDDLEWARE
+# ============================================================
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -62,6 +88,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "config.urls"
 
+
+# ============================================================
+# TEMPLATES
+# ============================================================
 
 TEMPLATES = [
     {
@@ -82,7 +112,10 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 
-# Database
+# ============================================================
+# DATABASE
+# ============================================================
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
@@ -102,6 +135,11 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+
+
+# ============================================================
+# PASSWORD VALIDATION
+# ============================================================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -131,6 +169,10 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+# ============================================================
+# INTERNATIONALIZATION
+# ============================================================
+
 LANGUAGE_CODE = "en-us"
 
 TIME_ZONE = "UTC"
@@ -140,18 +182,42 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files
+# ============================================================
+# STATIC FILES
+# ============================================================
+
 STATIC_URL = "static/"
+
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
-# Media files
+
+# ============================================================
+# MEDIA FILES
+# ============================================================
+
 MEDIA_URL = "/media/"
+
 MEDIA_ROOT = BASE_DIR / "media"
 
+
+# ============================================================
+# DEFAULT PRIMARY KEY
+# ============================================================
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
+# ============================================================
 # CORS
+# ============================================================
+
 CORS_ALLOW_ALL_ORIGINS = True
