@@ -126,75 +126,128 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f5f1] text-[#171717]">
-      {/* Announcement */}
-      <div className="bg-[#171717] px-4 py-2.5 text-center text-[9px] font-semibold uppercase tracking-[0.28em] text-white sm:text-[10px]">
-      Same Day Delivery &nbsp; | &nbsp; Fashion made for you
+    <main className="min-h-screen bg-white text-[#171717]">
+      {/* Top utility bar */}
+      <div className="hidden bg-[#111111] px-5 py-2 text-[10px] font-medium text-white/75 sm:block">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-end gap-7">
+
+          <button
+            type="button"
+            className="transition hover:text-white"
+          >
+            Help & Contact
+          </button>
+        </div>
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-black/10 bg-[#f7f5f1]/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-[78px] max-w-[1400px] items-center justify-between px-5 sm:px-8 lg:px-12">
+      {/* Main header */}
+      <header className="sticky top-0 z-50 bg-[#111111] text-white shadow-sm">
+        <div className="mx-auto flex min-h-[74px] max-w-[1400px] items-center gap-3 px-4 sm:px-6 lg:gap-5 lg:px-10">
+          {/* Logo */}
           <a
             href="/"
-            className="flex items-center gap-3"
+            className="flex shrink-0 items-center gap-2.5"
             aria-label="Perfectwears home"
           >
             <img
               src="/perfectwears-logo.jpg"
               alt="Perfectwears"
-              className="h-12 w-12 rounded-full object-cover"
+              className="h-10 w-10 rounded-full object-cover sm:h-11 sm:w-11"
             />
 
-            <div>
-              <div className="text-[17px] font-black uppercase leading-none tracking-[0.12em]">
+            <div className="hidden sm:block">
+              <div className="text-[16px] font-black uppercase leading-none tracking-[0.12em]">
                 Perfect
               </div>
-              <div className="mt-1 text-[10px] font-medium tracking-[0.3em] text-black/45">
+
+              <div className="mt-1 text-[8px] font-medium uppercase tracking-[0.38em] text-white/45">
                 Wears
               </div>
             </div>
           </a>
 
-          <nav className="hidden items-center gap-9 md:flex">
-            <button
-              onClick={() => handleCategoryChange("all")}
-              className="text-[11px] font-bold uppercase tracking-[0.16em] text-black/65 transition hover:text-black"
+          {/* Categories button */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((value) => !value)}
+            className="hidden h-11 shrink-0 items-center gap-2 border border-white/35 px-4 text-[10px] font-bold uppercase tracking-[0.14em] transition hover:border-white md:flex"
+          >
+            Categories
+
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
             >
-              Shop
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+
+          {/* Search */}
+          <div className="flex min-w-0 flex-1">
+            <div className="flex h-11 w-full items-center bg-white">
+              <input
+                type="search"
+                placeholder="Search for products"
+                className="min-w-0 flex-1 bg-transparent px-4 text-xs text-black outline-none placeholder:text-black/40"
+                aria-label="Search products"
+              />
+
+              <button
+                type="button"
+                aria-label="Search"
+                className="flex h-11 w-12 shrink-0 items-center justify-center bg-white text-black"
+              >
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="6.5" />
+                  <path d="m16 16 5 5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Account + cart */}
+          <div className="flex shrink-0 items-center gap-3 sm:gap-5">
+            <button
+              type="button"
+              className="hidden items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/80 transition hover:text-white sm:flex"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="8" r="3.2" />
+                <path d="M5.5 20c.7-3.7 2.8-5.6 6.5-5.6s5.8 1.9 6.5 5.6" />
+              </svg>
+
+              Log In
             </button>
 
-            <button
-              onClick={() => handleCategoryChange("matching-sets")}
-              className="text-[11px] font-bold uppercase tracking-[0.16em] text-black/65 transition hover:text-black"
-            >
-              Matching Sets
-            </button>
-
-            <button
-              onClick={() => handleCategoryChange("footwear")}
-              className="text-[11px] font-bold uppercase tracking-[0.16em] text-black/65 transition hover:text-black"
-            >
-              Footwear
-            </button>
-
-            <button
-              onClick={() => handleCategoryChange("fragrances")}
-              className="text-[11px] font-bold uppercase tracking-[0.16em] text-black/65 transition hover:text-black"
-            >
-              Fragrances
-            </button>
-          </nav>
-
-          <div className="flex items-center gap-2">
             <button
               type="button"
               aria-label="Shopping cart"
-              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-black/15 bg-white transition hover:border-black/40"
+              className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/80 transition hover:text-white"
             >
               <svg
-                width="19"
-                height="19"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -206,39 +259,44 @@ export default function Home() {
                 <circle cx="18" cy="20" r="1" />
               </svg>
 
+              <span className="hidden sm:inline">Cart</span>
+
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-white">
+                <span className="absolute -right-2 -top-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[9px] font-bold text-black">
                   {cartCount}
                 </span>
               )}
             </button>
 
+            {/* Mobile menu */}
             <button
               type="button"
               aria-label="Open menu"
               onClick={() => setMenuOpen((value) => !value)}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-black/15 bg-white md:hidden"
+              className="flex h-10 w-10 items-center justify-center border border-white/20 md:hidden"
             >
               <span className="flex w-5 flex-col gap-1.5">
-                <span className="h-px w-full bg-black" />
-                <span className="h-px w-full bg-black" />
-                <span className="h-px w-full bg-black" />
+                <span className="h-px w-full bg-white" />
+                <span className="h-px w-full bg-white" />
+                <span className="h-px w-full bg-white" />
               </span>
             </button>
           </div>
         </div>
 
+        {/* Category menu */}
         {menuOpen && (
-          <div className="border-t border-black/10 bg-[#f7f5f1] px-5 py-5 md:hidden">
-            <div className="flex flex-col gap-1">
+          <div className="border-t border-white/10 bg-[#111111] px-4 py-5 md:absolute md:left-0 md:right-0 md:top-full md:px-10">
+            <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {categories.map((category) => (
                 <button
                   key={category.slug}
+                  type="button"
                   onClick={() => handleCategoryChange(category.slug)}
-                  className={`rounded-lg px-3 py-3 text-left text-xs font-semibold uppercase tracking-[0.13em] transition ${
+                  className={`px-4 py-3 text-left text-[10px] font-bold uppercase tracking-[0.13em] transition ${
                     activeCategory === category.slug
-                      ? "bg-black text-white"
-                      : "text-black/60 hover:bg-black/5 hover:text-black"
+                      ? "bg-white text-black"
+                      : "text-white/60 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {category.name}
@@ -250,69 +308,165 @@ export default function Home() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-[#e8e4dc]">
-        <div className="absolute -right-32 -top-32 h-[420px] w-[420px] rounded-full border border-black/5" />
-        <div className="absolute -bottom-48 -left-24 h-[520px] w-[520px] rounded-full border border-black/5" />
+      <section className="relative overflow-hidden bg-[#e9e9e7]">
+        <div className="mx-auto grid min-h-[540px] max-w-[1400px] lg:min-h-[620px] lg:grid-cols-2">
+          {/* Hero copy */}
+          <div className="relative z-10 flex items-center px-6 py-16 sm:px-10 sm:py-20 lg:px-14 lg:py-24">
+            <div className="max-w-[570px]">
+              <p className="mb-5 text-[10px] font-bold uppercase tracking-[0.34em] text-black/45 sm:text-xs">
+                Perfectwears • Fashion & Style
+              </p>
 
-        <div className="relative mx-auto flex min-h-[560px] max-w-[1400px] items-center px-5 py-20 sm:min-h-[620px] sm:px-8 lg:min-h-[680px] lg:px-12">
-          <div className="max-w-3xl">
-            <p className="mb-6 text-[10px] font-bold uppercase tracking-[0.38em] text-black/45 sm:text-xs">
-              New collection • Perfectwears
-            </p>
+              <h1 className="max-w-[560px] text-5xl font-black uppercase leading-[0.9] tracking-[-0.055em] sm:text-7xl lg:text-[78px]">
+                Wear Your
+                <br />
+                <span className="text-black/35">Perfect</span>
+                <br />
+                Style.
+              </h1>
 
-            <h1 className="text-6xl font-black uppercase leading-[0.84] tracking-[-0.055em] sm:text-8xl lg:text-[110px]">
-              Wear
-              <br />
-              <span className="text-black/35">Your</span>
-              <br />
-              <span>Perfect.</span>
-            </h1>
+              <p className="mt-7 max-w-[470px] text-sm leading-7 text-black/55 sm:text-base">
+                Discover clothing, footwear, fragrances, accessories and
+                statement pieces selected for the modern wardrobe.
+              </p>
 
-            <p className="mt-8 max-w-lg text-sm leading-7 text-black/55 sm:text-base">
-              Discover clothing, footwear, fragrances, accessories and
-              statement pieces selected for the modern wardrobe.
-            </p>
-
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <button
+                type="button"
                 onClick={scrollToCollection}
-                className="h-13 rounded-full bg-black px-8 text-xs font-bold uppercase tracking-[0.18em] text-white transition hover:bg-black/80"
+                className="group mt-8 inline-flex h-12 items-center gap-4 border border-black bg-transparent px-6 text-[10px] font-bold uppercase tracking-[0.18em] transition hover:bg-black hover:text-white"
               >
-                Shop Collection
-              </button>
+                Shop Now
 
-              <button
-                onClick={() => handleCategoryChange("matching-sets")}
-                className="h-13 rounded-full border border-black/20 bg-white/50 px-8 text-xs font-bold uppercase tracking-[0.18em] transition hover:bg-white"
-              >
-                Explore Sets
+                <span className="text-base transition-transform group-hover:translate-x-1">
+                  →
+                </span>
               </button>
             </div>
           </div>
 
-          <div className="absolute bottom-10 right-10 hidden text-right lg:block">
-            <div className="text-[9px] font-bold uppercase tracking-[0.3em] text-black/35">
-              PERFECTWEARS
+          {/* Hero image */}
+          <div className="relative min-h-[430px] overflow-hidden bg-[#deddd9] lg:min-h-0">
+            <img
+              src="/perfectwears-hero.jpg"
+              alt="Perfectwears fashion"
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              fetchPriority="high"
+            />
+
+            <div className="absolute inset-0 bg-gradient-to-r from-black/5 via-transparent to-black/10" />
+          </div>
+        </div>
+
+
+        {/* Carousel dots */}
+        <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2">
+          <span className="h-2 w-7 rounded-full bg-black" />
+          <span className="h-2 w-2 rounded-full bg-black/20" />
+          <span className="h-2 w-2 rounded-full bg-black/20" />
+        </div>
+      </section>
+
+      {/* Feature strip */}
+      <section className="border-b border-black/10 bg-white">
+        <div className="mx-auto grid max-w-[1400px] sm:grid-cols-3">
+          <div className="flex items-center gap-4 border-b border-black/10 px-6 py-6 sm:border-b-0 sm:border-r sm:px-8 lg:px-12">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f3f1ed]">
+              <svg
+                width="21"
+                height="21"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path d="M3 6h11v10H3z" />
+                <path d="M14 9h4l3 3v4h-7z" />
+                <circle cx="7" cy="18" r="2" />
+                <circle cx="18" cy="18" r="2" />
+              </svg>
             </div>
-            <div className="mt-2 text-4xl font-black tracking-[-0.06em] text-black/10">
-              PWS
+
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em]">
+                Same Day Delivery
+              </p>
+              <p className="mt-1 text-xs leading-5 text-black/45">
+                Fast delivery across Lagos
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 border-b border-black/10 px-6 py-6 sm:border-b-0 sm:border-r sm:px-8 lg:px-12">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f3f1ed]">
+              <svg
+                width="21"
+                height="21"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M3 10h18" />
+                <path d="M7 15h4" />
+              </svg>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em]">
+                Secure Payments
+              </p>
+              <p className="mt-1 text-xs leading-5 text-black/45">
+                Pay securely with Paystack
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 px-6 py-6 sm:px-8 lg:px-12">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f3f1ed]">
+              <svg
+                width="21"
+                height="21"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M8 10a4 4 0 0 1 8 0" />
+                <path d="M8 14a4 4 0 0 0 8 0" />
+                <path d="M8 12h8" />
+              </svg>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em]">
+                Customer Support
+              </p>
+              <p className="mt-1 text-xs leading-5 text-black/45">
+                We're here whenever you need us
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Category strip */}
-      <section className="border-b border-black/10 bg-white">
+      <section className="border-b border-black/10 bg-[#f7f5f1]">
         <div className="mx-auto max-w-[1400px] px-5 py-5 sm:px-8 lg:px-12">
           <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {categories.map((category) => (
               <button
                 key={category.slug}
+                type="button"
                 onClick={() => handleCategoryChange(category.slug)}
                 className={`shrink-0 rounded-full border px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] transition sm:text-[11px] ${
                   activeCategory === category.slug
                     ? "border-black bg-black text-white"
-                    : "border-black/10 bg-[#f7f5f1] text-black/55 hover:border-black/30 hover:text-black"
+                    : "border-black/10 bg-white text-black/55 hover:border-black/30 hover:text-black"
                 }`}
               >
                 {category.name}
@@ -331,7 +485,7 @@ export default function Home() {
           <div>
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-black/35">
               {activeCategory === "all"
-                ? "The Collection"
+                ? "Shop Our Collection"
                 : categories.find(
                     (item) => item.slug === activeCategory,
                   )?.name}
@@ -339,7 +493,7 @@ export default function Home() {
 
             <h2 className="text-3xl font-black tracking-[-0.035em] sm:text-5xl">
               {activeCategory === "all"
-                ? "Latest arrivals"
+                ? "Find your perfect style"
                 : "Shop the edit"}
             </h2>
           </div>
@@ -367,6 +521,7 @@ export default function Home() {
             <p className="text-sm text-black/55">{error}</p>
 
             <button
+              type="button"
               onClick={() => window.location.reload()}
               className="mt-6 rounded-full bg-black px-6 py-3 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-black/80"
             >
@@ -378,6 +533,7 @@ export default function Home() {
         {!loading && !error && filteredProducts.length === 0 && (
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-20 text-center">
             <p className="text-lg font-bold">Nothing here yet.</p>
+
             <p className="mt-2 text-sm text-black/45">
               New pieces are being added to this collection.
             </p>
@@ -449,7 +605,7 @@ export default function Home() {
       </section>
 
       {/* Brand statement */}
-      <section className="bg-[#171717] text-white">
+      <section className="bg-[#111111] text-white">
         <div className="mx-auto max-w-[1100px] px-5 py-20 text-center sm:py-28">
           <img
             src="/perfectwears-logo.jpg"
@@ -497,6 +653,7 @@ export default function Home() {
                 {categories.slice(1, 5).map((category) => (
                   <button
                     key={category.slug}
+                    type="button"
                     onClick={() => handleCategoryChange(category.slug)}
                     className="text-left text-sm text-black/55 transition hover:text-black"
                   >
@@ -508,13 +665,14 @@ export default function Home() {
 
             <div>
               <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-black/45">
-                Explore
+                More
               </h3>
 
               <div className="mt-5 flex flex-col gap-3">
                 {categories.slice(5).map((category) => (
                   <button
                     key={category.slug}
+                    type="button"
                     onClick={() => handleCategoryChange(category.slug)}
                     className="text-left text-sm text-black/55 transition hover:text-black"
                   >
