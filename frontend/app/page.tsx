@@ -357,13 +357,6 @@ export default function Home() {
           </div>
         </div>
 
-
-        {/* Carousel dots */}
-        <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2">
-          <span className="h-2 w-7 rounded-full bg-black" />
-          <span className="h-2 w-2 rounded-full bg-black/20" />
-          <span className="h-2 w-2 rounded-full bg-black/20" />
-        </div>
       </section>
 
       {/* Feature strip */}
