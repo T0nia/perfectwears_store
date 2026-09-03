@@ -160,7 +160,7 @@ export default function Home() {
                 Perfect
               </div>
 
-              <div className="mt-1 text-[8px] font-medium uppercase tracking-[0.38em] text-white/45">
+              <div className="mt-1 text-[8px] font-medium uppercase tracking-[0.38em] text-white/75">
                 Wears
               </div>
             </div>
@@ -620,68 +620,132 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-[#f7f5f1]">
-        <div className="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:px-12">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="sm:col-span-2">
-              <img
-                src="/perfectwears-logo.jpg"
-                alt="Perfectwears"
-                className="h-16 w-16 rounded-full object-cover"
-              />
+    {/* Footer */} <footer className="bg-[#f7f5f1]"> <div className="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:px-12"> <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+{/* Brand */} <div className="sm:col-span-2"> <img
+             src="/perfectwears-logo.jpg"
+             alt="Perfectwears"
+             className="h-16 w-16 rounded-full object-cover"
+           />
 
-              <p className="mt-5 max-w-sm text-sm leading-6 text-black/45">
-                Fashion and style for the modern wardrobe. Discover your next
-                favourite piece at Perfectwears.
-              </p>
-            </div>
+```
+          <p className="mt-5 max-w-sm text-sm leading-6 text-black/45">
+            Fashion and style for the modern wardrobe. Discover your next
+            favourite piece at Perfectwears.
+          </p>
+        </div>
 
-            <div>
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-black/45">
-                Shop
-              </h3>
+        {/* Contact / Socials */}
+        <div className="sm:col-span-2">
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-black/45">
+            Contact Us
+          </h3>
 
-              <div className="mt-5 flex flex-col gap-3">
-                {categories.slice(1, 5).map((category) => (
-                  <button
-                    key={category.slug}
-                    type="button"
-                    onClick={() => handleCategoryChange(category.slug)}
-                    className="text-left text-sm text-black/55 transition hover:text-black"
-                  >
-                    {category.name}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="mt-5 grid max-w-xs grid-cols-5 gap-2 sm:max-w-sm sm:gap-3">
+            {/* WhatsApp */}
+            <a
+              href="#"
+              aria-label="WhatsApp"
+              onClick={(event) => event.preventDefault()}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M20.5 3.5A11.9 11.9 0 0 0 12.02 0C5.4 0 .02 5.38.02 12c0 2.11.55 4.17 1.6 5.98L0 24l6.16-1.61A11.93 11.93 0 0 0 12.01 24h.01C18.63 24 24 18.62 24 12c0-3.2-1.25-6.21-3.5-8.5ZM12.02 21.98a9.91 9.91 0 0 1-5.06-1.39l-.36-.21-3.66.96.98-3.57-.23-.37A9.92 9.92 0 0 1 2.02 12c0-5.51 4.49-9.99 10-9.99 2.67 0 5.18 1.04 7.07 2.93A9.93 9.93 0 0 1 22.02 12c0 5.51-4.49 9.98-10 9.98Zm5.47-7.46c-.3-.15-1.77-.87-2.05-.97-.28-.1-.48-.15-.69.15-.2.3-.79.97-.97 1.17-.18.2-.36.23-.66.08-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.67-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.36.46-.54.15-.18.2-.3.3-.51.1-.2.05-.38-.03-.54-.08-.15-.69-1.65-.95-2.26-.25-.59-.51-.51-.69-.52h-.59c-.2 0-.54.08-.82.38-.28.3-1.08 1.05-1.08 2.56s1.1 2.97 1.26 3.18c.15.2 2.17 3.31 5.26 4.64.74.32 1.32.51 1.77.65.74.24 1.41.21 1.94.13.59-.09 1.77-.72 2.02-1.41.25-.69.25-1.28.18-1.4-.08-.13-.28-.2-.59-.36Z" />
+              </svg>
+            </a>
 
-            <div>
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-black/45">
-                More
-              </h3>
+            {/* Instagram */}
+            <a
+              href="#"
+              aria-label="Instagram"
+              onClick={(event) => event.preventDefault()}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden="true"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4.2" />
+                <circle cx="17.4" cy="6.7" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            </a>
 
-              <div className="mt-5 flex flex-col gap-3">
-                {categories.slice(5).map((category) => (
-                  <button
-                    key={category.slug}
-                    type="button"
-                    onClick={() => handleCategoryChange(category.slug)}
-                    className="text-left text-sm text-black/55 transition hover:text-black"
-                  >
-                    {category.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+            {/* TikTok */}
+            <a
+              href="#"
+              aria-label="TikTok"
+              onClick={(event) => event.preventDefault()}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M16.6 2c.3 1.9 1.4 3.4 3.4 4v3.1c-1.8-.1-3.2-.7-4.4-1.6v7.3c0 3.7-2.8 6.2-6.2 6.2-3.1 0-5.4-2.2-5.4-5.1 0-3.3 2.6-5.7 6.1-5.7.4 0 .8 0 1.2.1v3.2c-.4-.1-.8-.2-1.2-.2-1.5 0-2.8 1-2.8 2.5 0 1.3 1 2.2 2.2 2.2 1.5 0 2.8-.9 2.8-3.1V2h4.3Z" />
+              </svg>
+            </a>
 
-          <div className="mt-14 flex flex-col gap-3 border-t border-black/10 pt-6 text-[10px] font-medium uppercase tracking-[0.15em] text-black/30 sm:flex-row sm:items-center sm:justify-between">
-            <p>© {new Date().getFullYear()} Perfectwears</p>
-            <p>Fashion & Style • Lagos, Nigeria</p>
+            {/* X / Twitter */}
+            <a
+              href="#"
+              aria-label="X"
+              onClick={(event) => event.preventDefault()}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
+            >
+              <svg
+                width="19"
+                height="19"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M18.9 2H22l-6.77 7.74L23.2 22h-6.25l-4.9-6.41L6.44 22H3.33l7.24-8.28L2.8 2h6.41l4.43 5.86L18.9 2Zm-1.1 17.92h1.73L8.27 3.96H6.41L17.8 19.92Z" />
+              </svg>
+            </a>
+
+            {/* Email */}
+            <a
+              href="mailto:"
+              aria-label="Email"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                aria-hidden="true"
+              >
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="m4 7 8 6 8-6" />
+              </svg>
+            </a>
           </div>
         </div>
-      </footer>
+      </div>
+
+      <div className="mt-14 flex flex-col gap-3 border-t border-black/10 pt-6 text-[10px] font-medium uppercase tracking-[0.15em] text-black/30 sm:flex-row sm:items-center sm:justify-between">
+        <p>© {new Date().getFullYear()} Perfectwears</p>
+        <p>Fashion & Style • Lagos, Nigeria</p>
+      </div>
+    </div>
+  </footer>
     </main>
   );
 }
