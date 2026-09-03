@@ -362,114 +362,68 @@ export default function Home() {
       </section>
 
       {/* Feature strip */}
+
       <section className="border-b border-black/10 bg-white">
-        <div className="mx-auto grid max-w-[1400px] sm:grid-cols-3">
-          <div className="flex items-center gap-4 border-b border-black/10 px-6 py-6 sm:border-b-0 sm:border-r sm:px-8 lg:px-12">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f3f1ed]">
-              <svg
-                width="21"
-                height="21"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden="true"
-              >
-                <path d="M3 6h11v10H3z" />
-                <path d="M14 9h4l3 3v4h-7z" />
-                <circle cx="7" cy="18" r="2" />
-                <circle cx="18" cy="18" r="2" />
-              </svg>
+        <div className="mx-auto grid max-w-[1400px] gap-3 px-4 py-4 sm:grid-cols-3 sm:gap-0 sm:px-0 sm:py-0">
+
+          {/* Same Day Delivery */}
+          <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-[#fff0e6] px-5 py-6 transition-all duration-300 hover:shadow-sm sm:rounded-none sm:px-8 sm:py-8 lg:px-12">
+            <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#ffd7c2]/60" />
+
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-[0_4px_15px_rgba(0,0,0,0.06)] transition-transform duration-300 group-hover:scale-105">
+              🚚
             </div>
 
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em]">
+            <div className="relative">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-black">
                 Same Day Delivery
               </p>
-              <p className="mt-1 text-xs leading-5 text-black/45">
+              <p className="mt-1 text-xs leading-5 text-black/55">
                 Fast delivery across Lagos
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 border-b border-black/10 px-6 py-6 sm:border-b-0 sm:border-r sm:px-8 lg:px-12">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f3f1ed]">
-              <svg
-                width="21"
-                height="21"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden="true"
-              >
-                <rect x="3" y="5" width="18" height="14" rx="2" />
-                <path d="M3 10h18" />
-                <path d="M7 15h4" />
-              </svg>
+          {/* Secure Payments */}
+          <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-[#f1edff] px-5 py-6 transition-all duration-300 hover:shadow-sm sm:rounded-none sm:border-l sm:border-r sm:border-black/10 sm:px-8 sm:py-8 lg:px-12">
+            <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-[#ddd4ff]/70" />
+
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-[0_4px_15px_rgba(0,0,0,0.06)] transition-transform duration-300 group-hover:scale-105">
+              🔒
             </div>
 
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em]">
+            <div className="relative">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-black">
                 Secure Payments
               </p>
-              <p className="mt-1 text-xs leading-5 text-black/45">
+              <p className="mt-1 text-xs leading-5 text-black/55">
                 Pay securely with Paystack
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 px-6 py-6 sm:px-8 lg:px-12">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#f3f1ed]">
-              <svg
-                width="21"
-                height="21"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden="true"
-              >
-                <circle cx="12" cy="12" r="9" />
-                <path d="M8 10a4 4 0 0 1 8 0" />
-                <path d="M8 14a4 4 0 0 0 8 0" />
-                <path d="M8 12h8" />
-              </svg>
+          {/* Customer Support */}
+          <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-[#fff0e6] px-5 py-6 transition-all duration-300 hover:shadow-sm sm:rounded-none sm:px-8 sm:py-8 lg:px-12">
+            <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#ffd7c2]/60" />
+
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-[0_4px_15px_rgba(0,0,0,0.06)] transition-transform duration-300 group-hover:scale-105">
+              💬
             </div>
 
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em]">
+            <div className="relative">
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-black">
                 Customer Support
               </p>
-              <p className="mt-1 text-xs leading-5 text-black/45">
+              <p className="mt-1 text-xs leading-5 text-black/55">
                 We're here whenever you need us
               </p>
             </div>
           </div>
+
         </div>
       </section>
 
-      {/* Category strip */}
-      <section className="border-b border-black/10 bg-[#f7f5f1]">
-        <div className="mx-auto max-w-[1400px] px-5 py-5 sm:px-8 lg:px-12">
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {categories.map((category) => (
-              <button
-                key={category.slug}
-                type="button"
-                onClick={() => handleCategoryChange(category.slug)}
-                className={`shrink-0 rounded-full border px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.13em] transition sm:text-[11px] ${
-                  activeCategory === category.slug
-                    ? "border-black bg-black text-white"
-                    : "border-black/10 bg-white text-black/55 hover:border-black/30 hover:text-black"
-                }`}
-              >
-                {category.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       {/* Collection */}
       <section
