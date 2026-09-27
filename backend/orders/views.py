@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 import requests
 
@@ -29,60 +30,59 @@ def create_order(request):
     customer_phone = request.data.get("customer_phone")
 
     if not cart_id:
-        return Response(
-            {"error": "cart_id is required"},
-            status=400,
-        )
+        return Response({"error": "cart_id is required"}, status=400)
 
     if not customer_name:
-        return Response(
-            {"error": "customer_name is required"},
-            status=400,
-        )
+        return Response({"error": "customer_name is required"}, status=400)
 
     if not customer_email:
-        return Response(
-            {"error": "customer_email is required"},
-            status=400,
-        )
+        return Response({"error": "customer_email is required"}, status=400)
 
     if not customer_phone:
-        return Response(
-            {"error": "customer_phone is required"},
-            status=400,
-        )
+        return Response({"error": "customer_phone is required"}, status=400)
 
     try:
         cart = Cart.objects.get(id=cart_id)
     except Cart.DoesNotExist:
-        return Response(
-            {"error": "Cart not found"},
-            status=404,
-        )
+        return Response({"error": "Cart not found"}, status=404)
 
     if cart.items.count() == 0:
-        return Response(
-            {"error": "Cart is empty"},
-            status=400,
-        )
-
-    existing_order = Order.objects.filter(cart=cart).first()
-
-    if existing_order:
-        serializer = OrderSerializer(existing_order)
-
-        return Response(
-            {
-                "error": "This cart has already been checked out.",
-                "order": serializer.data,
-            },
-            status=400,
-        )
+        return Response({"error": "Cart is empty"}, status=400)
 
     total_amount = Decimal("0.00")
 
     for item in cart.items.all():
         total_amount += item.product.price * item.quantity
+
+    existing_order = Order.objects.filter(cart=cart).first()
+
+    if existing_order:
+        if existing_order.payment_status == "PAID":
+            return Response(
+                {
+                    "error": "This cart has already been paid for.",
+                    "order": OrderSerializer(existing_order).data,
+                },
+                status=400,
+            )
+
+        existing_order.customer_name = customer_name
+        existing_order.customer_email = customer_email
+        existing_order.customer_phone = customer_phone
+        existing_order.total_amount = total_amount
+        existing_order.save(
+            update_fields=[
+                "customer_name",
+                "customer_email",
+                "customer_phone",
+                "total_amount",
+            ]
+        )
+
+        return Response(
+            OrderSerializer(existing_order).data,
+            status=200,
+        )
 
     order = Order.objects.create(
         cart=cart,
@@ -92,10 +92,8 @@ def create_order(request):
         total_amount=total_amount,
     )
 
-    serializer = OrderSerializer(order)
-
     return Response(
-        serializer.data,
+        OrderSerializer(order).data,
         status=201,
     )
 
@@ -105,18 +103,12 @@ def initialize_payment(request):
     order_id = request.data.get("order_id")
 
     if not order_id:
-        return Response(
-            {"error": "order_id is required"},
-            status=400,
-        )
+        return Response({"error": "order_id is required"}, status=400)
 
     try:
         order = Order.objects.get(id=order_id)
     except Order.DoesNotExist:
-        return Response(
-            {"error": "Order not found"},
-            status=404,
-        )
+        return Response({"error": "Order not found"}, status=404)
 
     if order.payment_status == "PAID":
         return Response(
@@ -132,12 +124,10 @@ def initialize_payment(request):
 
     amount_in_kobo = int(order.total_amount * 100)
 
-    reference = str(order.id)
+    reference = f"{order.id}-{uuid.uuid4().hex[:12]}"
 
     headers = {
-        "Authorization": (
-            f"Bearer {settings.PAYSTACK_SECRET_KEY}"
-        ),
+        "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
         "Content-Type": "application/json",
     }
 
@@ -160,9 +150,7 @@ def initialize_payment(request):
             headers=headers,
             timeout=30,
         )
-
         response_data = response.json()
-
     except requests.RequestException:
         return Response(
             {
@@ -173,10 +161,13 @@ def initialize_payment(request):
             },
             status=502,
         )
-
     except ValueError:
         return Response(
-            {"error": "Invalid response received from Paystack."},
+            {
+                "error": (
+                    "Invalid response received from Paystack."
+                )
+            },
             status=502,
         )
 
@@ -199,7 +190,11 @@ def initialize_payment(request):
 
     if not paystack_reference or not authorization_url:
         return Response(
-            {"error": "Paystack returned an incomplete response."},
+            {
+                "error": (
+                    "Paystack returned an incomplete response."
+                )
+            },
             status=502,
         )
 
@@ -259,9 +254,7 @@ def verify_payment(request):
         )
 
     headers = {
-        "Authorization": (
-            f"Bearer {settings.PAYSTACK_SECRET_KEY}"
-        ),
+        "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
         "Content-Type": "application/json",
     }
 
@@ -271,9 +264,7 @@ def verify_payment(request):
             headers=headers,
             timeout=30,
         )
-
         response_data = response.json()
-
     except requests.RequestException:
         return Response(
             {
@@ -284,10 +275,13 @@ def verify_payment(request):
             },
             status=502,
         )
-
     except ValueError:
         return Response(
-            {"error": "Invalid response received from Paystack."},
+            {
+                "error": (
+                    "Invalid response received from Paystack."
+                )
+            },
             status=502,
         )
 
@@ -318,13 +312,23 @@ def verify_payment(request):
 
     if paystack_reference != order.payment_reference:
         return Response(
-            {"error": "Payment reference does not match this order."},
+            {
+                "error": (
+                    "Payment reference does not "
+                    "match this order."
+                )
+            },
             status=400,
         )
 
     if paid_amount != expected_amount:
         return Response(
-            {"error": "Payment amount does not match the order amount."},
+            {
+                "error": (
+                    "Payment amount does not "
+                    "match the order amount."
+                )
+            },
             status=400,
         )
 
