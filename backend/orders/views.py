@@ -101,6 +101,7 @@ def create_order(request):
 @api_view(["POST"])
 def initialize_payment(request):
     order_id = request.data.get("order_id")
+    callback_url = request.data.get("callback_url")
 
     if not order_id:
         return Response({"error": "order_id is required"}, status=400)
@@ -142,6 +143,9 @@ def initialize_payment(request):
             "customer_phone": order.customer_phone,
         },
     }
+
+    if callback_url:
+        payload["callback_url"] = callback_url
 
     try:
         response = requests.post(

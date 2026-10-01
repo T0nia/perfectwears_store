@@ -59,6 +59,7 @@ type PaymentResponse = {
 
 const API_URL = "https://perfectwears-backend.onrender.com/api";
 const CART_STORAGE_KEY = "perfectwears_cart_id";
+const PENDING_ORDER_KEY = "perfectwears_pending_order_id";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -149,6 +150,8 @@ export default function CheckoutPage() {
         );
       }
 
+      const callbackUrl = `${window.location.origin}/payment/callback`;
+
       const paymentResponse = await fetch(
         `${API_URL}/orders/initialize-payment/`,
         {
@@ -158,6 +161,7 @@ export default function CheckoutPage() {
           },
           body: JSON.stringify({
             order_id: orderData.id,
+            callback_url: callbackUrl,
           }),
         },
       );
@@ -177,6 +181,11 @@ export default function CheckoutPage() {
           "Paystack did not return a payment link.",
         );
       }
+
+      localStorage.setItem(
+        PENDING_ORDER_KEY,
+        paymentData.order_id,
+      );
 
       window.location.href = paymentData.authorization_url;
     } catch (err) {
