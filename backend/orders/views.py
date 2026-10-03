@@ -5,7 +5,11 @@ import requests
 
 from django.conf import settings
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import (
+    api_view,
+    permission_classes,
+)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from cart.models import Cart
@@ -23,6 +27,7 @@ PAYSTACK_VERIFY_URL = (
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def create_order(request):
     cart_id = request.data.get("cart_id")
     customer_name = request.data.get("customer_name")
@@ -30,24 +35,53 @@ def create_order(request):
     customer_phone = request.data.get("customer_phone")
 
     if not cart_id:
-        return Response({"error": "cart_id is required"}, status=400)
+        return Response(
+            {"error": "cart_id is required"},
+            status=400,
+        )
 
     if not customer_name:
-        return Response({"error": "customer_name is required"}, status=400)
+        return Response(
+            {"error": "customer_name is required"},
+            status=400,
+        )
 
     if not customer_email:
-        return Response({"error": "customer_email is required"}, status=400)
+        return Response(
+            {"error": "customer_email is required"},
+            status=400,
+        )
 
     if not customer_phone:
-        return Response({"error": "customer_phone is required"}, status=400)
+        return Response(
+            {"error": "customer_phone is required"},
+            status=400,
+        )
+
+    if customer_email.strip().lower() != request.user.email.lower():
+        return Response(
+            {
+                "error": (
+                    "Customer email must match "
+                    "your logged-in account."
+                )
+            },
+            status=400,
+        )
 
     try:
         cart = Cart.objects.get(id=cart_id)
     except Cart.DoesNotExist:
-        return Response({"error": "Cart not found"}, status=404)
+        return Response(
+            {"error": "Cart not found"},
+            status=404,
+        )
 
     if cart.items.count() == 0:
-        return Response({"error": "Cart is empty"}, status=400)
+        return Response(
+            {"error": "Cart is empty"},
+            status=400,
+        )
 
     total_amount = Decimal("0.00")
 
@@ -60,18 +94,25 @@ def create_order(request):
         if existing_order.payment_status == "PAID":
             return Response(
                 {
-                    "error": "This cart has already been paid for.",
-                    "order": OrderSerializer(existing_order).data,
+                    "error": (
+                        "This cart has already been paid for."
+                    ),
+                    "order": OrderSerializer(
+                        existing_order
+                    ).data,
                 },
                 status=400,
             )
 
+        existing_order.user = request.user
         existing_order.customer_name = customer_name
         existing_order.customer_email = customer_email
         existing_order.customer_phone = customer_phone
         existing_order.total_amount = total_amount
+
         existing_order.save(
             update_fields=[
+                "user",
                 "customer_name",
                 "customer_email",
                 "customer_phone",
@@ -86,6 +127,7 @@ def create_order(request):
 
     order = Order.objects.create(
         cart=cart,
+        user=request.user,
         customer_name=customer_name,
         customer_email=customer_email,
         customer_phone=customer_phone,
@@ -99,17 +141,27 @@ def create_order(request):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def initialize_payment(request):
     order_id = request.data.get("order_id")
     callback_url = request.data.get("callback_url")
 
     if not order_id:
-        return Response({"error": "order_id is required"}, status=400)
+        return Response(
+            {"error": "order_id is required"},
+            status=400,
+        )
 
     try:
-        order = Order.objects.get(id=order_id)
+        order = Order.objects.get(
+            id=order_id,
+            user=request.user,
+        )
     except Order.DoesNotExist:
-        return Response({"error": "Order not found"}, status=404)
+        return Response(
+            {"error": "Order not found"},
+            status=404,
+        )
 
     if order.payment_status == "PAID":
         return Response(
@@ -125,10 +177,14 @@ def initialize_payment(request):
 
     amount_in_kobo = int(order.total_amount * 100)
 
-    reference = f"{order.id}-{uuid.uuid4().hex[:12]}"
+    reference = (
+        f"{order.id}-{uuid.uuid4().hex[:12]}"
+    )
 
     headers = {
-        "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
+        "Authorization": (
+            f"Bearer {settings.PAYSTACK_SECRET_KEY}"
+        ),
         "Content-Type": "application/json",
     }
 
@@ -203,7 +259,10 @@ def initialize_payment(request):
         )
 
     order.payment_reference = paystack_reference
-    order.save(update_fields=["payment_reference"])
+
+    order.save(
+        update_fields=["payment_reference"]
+    )
 
     return Response(
         {
@@ -217,6 +276,7 @@ def initialize_payment(request):
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def verify_payment(request):
     order_id = request.data.get("order_id")
     reference = request.data.get("reference")
@@ -234,7 +294,10 @@ def verify_payment(request):
         )
 
     try:
-        order = Order.objects.get(id=order_id)
+        order = Order.objects.get(
+            id=order_id,
+            user=request.user,
+        )
     except Order.DoesNotExist:
         return Response(
             {"error": "Order not found"},
@@ -258,7 +321,9 @@ def verify_payment(request):
         )
 
     headers = {
-        "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
+        "Authorization": (
+            f"Bearer {settings.PAYSTACK_SECRET_KEY}"
+        ),
         "Content-Type": "application/json",
     }
 
@@ -348,7 +413,10 @@ def verify_payment(request):
         )
 
     order.payment_status = "PAID"
-    order.save(update_fields=["payment_status"])
+
+    order.save(
+        update_fields=["payment_status"]
+    )
 
     return Response(
         {

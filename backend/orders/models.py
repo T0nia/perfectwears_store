@@ -1,5 +1,7 @@
-from django.db import models
 import uuid
+
+from django.contrib.auth.models import User
+from django.db import models
 
 from cart.models import Cart
 
@@ -32,6 +34,14 @@ class Order(models.Model):
     cart = models.OneToOneField(
         Cart,
         on_delete=models.CASCADE,
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
     )
 
     customer_name = models.CharField(
@@ -72,7 +82,6 @@ class Order(models.Model):
     delivery_method = models.CharField(
         max_length=20,
         choices=DELIVERY_METHOD,
-        blank=True,
         null=True,
     )
 

@@ -10,6 +10,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "cart",
+            "user",
             "customer_name",
             "customer_email",
             "customer_phone",
@@ -22,6 +23,9 @@ class OrderSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = [
+            "id",
+            "user",
+            "total_amount",
             "payment_reference",
             "payment_status",
             "order_status",

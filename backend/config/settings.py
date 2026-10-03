@@ -61,11 +61,13 @@ INSTALLED_APPS = [
     "cloudinary_storage",
 
     "rest_framework",
+    "rest_framework.authtoken",
     "corsheaders",
 
     "products",
     "cart",
     "orders",
+    "accounts",
 ]
 
 
@@ -221,3 +223,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ============================================================
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+
+# ============================================================
+# REST FRAMEWORK
+# ============================================================
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+}
