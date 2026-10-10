@@ -1,3 +1,4 @@
+
 from django.urls import path
 
 from .views import (
@@ -5,7 +6,6 @@ from .views import (
     initialize_payment,
     verify_payment,
 )
-
 
 urlpatterns = [
     path(

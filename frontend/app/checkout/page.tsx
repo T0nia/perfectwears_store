@@ -1,25 +1,14 @@
+
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Category = {
-  id: number;
-  name: string;
-  slug: string;
-};
-
 type Product = {
   id: string;
   name: string;
-  slug: string;
   price: string;
-  category: Category;
-  image: string;
-  sizes: string[];
   stock: number;
-  is_active: boolean;
-  created_at: string;
 };
 
 type CartItem = {
@@ -27,39 +16,75 @@ type CartItem = {
   product: Product;
   quantity: number;
   selected_size: string | null;
-  created_at: string;
 };
 
 type Cart = {
   id: string;
-  created_at: string;
   items: CartItem[];
 };
 
-type Order = {
-  id: string;
-  cart: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  total_amount: string;
-  payment_reference: string | null;
-  payment_status: string;
-  order_status: string;
-  delivery_method: string | null;
-  created_at: string;
+type OrderResponse = {
+  id?: string;
+  order_id?: string;
+  error?: string;
+  detail?: string;
 };
 
 type PaymentResponse = {
-  order_id: string;
-  payment_reference: string;
-  authorization_url: string;
-  access_code: string | null;
+  order_id?: string;
+  authorization_url?: string;
+  error?: string;
+  detail?: string;
 };
 
 const API_URL = "https://perfectwears-backend.onrender.com/api";
 const CART_STORAGE_KEY = "perfectwears_cart_id";
 const PENDING_ORDER_KEY = "perfectwears_pending_order_id";
+
+function formatNaira(amount: number) {
+  return `₦${amount.toLocaleString("en-NG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function getMessage(
+  data: { error?: string; detail?: string },
+  fallback: string,
+) {
+  return data.error || data.detail || fallback;
+}
+
+function CheckoutIcon() {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      fill="none"
+      aria-hidden="true"
+      className="h-7 w-7"
+    >
+      <path
+        d="M10 17.5h28l-2.3 23H12.3L10 17.5Z"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M17 18v-4.5a7 7 0 0 1 14 0V18"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <path
+        d="m19 29 3.5 3.5 7-7"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -74,55 +99,67 @@ export default function CheckoutPage() {
   const [customerPhone, setCustomerPhone] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadCart() {
       try {
         const cartId = localStorage.getItem(CART_STORAGE_KEY);
 
         if (!cartId) {
-          router.push("/cart");
+          router.replace("/cart");
           return;
         }
 
         const response = await fetch(`${API_URL}/cart/${cartId}/`);
 
         if (!response.ok) {
-          localStorage.removeItem(CART_STORAGE_KEY);
-          router.push("/cart");
-          return;
+          throw new Error(
+            response.status === 404
+              ? "We couldn't find your cart. Please return to your cart and try again."
+              : "Unable to load your cart. Please try again.",
+          );
         }
 
         const data: Cart = await response.json();
 
-        if (!data.items || data.items.length === 0) {
-          router.push("/cart");
+        if (!data.items?.length) {
+          router.replace("/cart");
           return;
         }
 
-        setCart(data);
+        if (!cancelled) setCart(data);
       } catch (err) {
-        console.error(err);
-        setError("Unable to load your cart.");
+        console.error("Checkout cart request failed:", err);
+
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to connect to the store. Please try again.",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadCart();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const total =
     cart?.items.reduce(
-      (sum, item) =>
-        sum + Number(item.product.price) * item.quantity,
+      (sum, item) => sum + Number(item.product.price) * item.quantity,
       0,
     ) ?? 0;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!cart || submitting) {
-      return;
-    }
+    if (!cart || submitting) return;
 
     try {
       setSubmitting(true);
@@ -130,9 +167,7 @@ export default function CheckoutPage() {
 
       const orderResponse = await fetch(`${API_URL}/orders/create/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cart_id: cart.id,
           customer_name: customerName.trim(),
@@ -141,284 +176,256 @@ export default function CheckoutPage() {
         }),
       });
 
-      const orderData: Order & { error?: string } =
-        await orderResponse.json();
+      const orderData: OrderResponse = await orderResponse.json();
 
       if (!orderResponse.ok) {
         throw new Error(
-          orderData.error || "Unable to create your order.",
+          getMessage(orderData, "Unable to create your order."),
         );
       }
 
-      const callbackUrl = `${window.location.origin}/payment/callback`;
+      const orderId = orderData.id || orderData.order_id;
+
+      if (!orderId) {
+        throw new Error("The server did not return an order ID.");
+      }
 
       const paymentResponse = await fetch(
         `${API_URL}/orders/initialize-payment/`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            order_id: orderData.id,
-            callback_url: callbackUrl,
+            order_id: orderId,
+            callback_url: `${window.location.origin}/payment/callback`,
           }),
         },
       );
 
-      const paymentData: PaymentResponse & { error?: string } =
-        await paymentResponse.json();
+      const paymentData: PaymentResponse = await paymentResponse.json();
 
       if (!paymentResponse.ok) {
         throw new Error(
-          paymentData.error ||
-            "Unable to initialize your payment.",
+          getMessage(paymentData, "Unable to initialize payment."),
         );
       }
 
       if (!paymentData.authorization_url) {
-        throw new Error(
-          "Paystack did not return a payment link.",
-        );
+        throw new Error("Paystack did not return a payment link.");
       }
 
       localStorage.setItem(
         PENDING_ORDER_KEY,
-        paymentData.order_id,
+        paymentData.order_id || orderId,
       );
 
       window.location.href = paymentData.authorization_url;
     } catch (err) {
-      console.error(err);
-
+      console.error("Checkout submission failed:", err);
       setError(
         err instanceof Error
           ? err.message
           : "Something went wrong. Please try again.",
       );
-
       setSubmitting(false);
     }
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f1edff] px-5 py-12 text-black">
-        <div className="mx-auto max-w-6xl animate-pulse">
-          <div className="h-8 w-40 rounded bg-[#ddd4ff]" />
-          <div className="mt-8 h-64 rounded-3xl bg-[#ddd4ff]" />
+      <main className="min-h-screen bg-[#f1edff] px-4 py-10 sm:px-6">
+        <div className="mx-auto max-w-5xl animate-pulse">
+          <div className="h-8 w-40 rounded-lg bg-[#ddd4ff]" />
+          <div className="mt-8 h-72 rounded-3xl bg-[#ddd4ff]" />
         </div>
       </main>
     );
   }
 
   if (!cart) {
-    return null;
+    return (
+      <main className="min-h-screen bg-[#f1edff] px-4 py-10 sm:px-6">
+        <div className="mx-auto max-w-xl rounded-3xl bg-white p-6 shadow-sm sm:p-8">
+          <h1 className="text-xl font-black sm:text-2xl">
+            Unable to continue checkout
+          </h1>
+          <p className="mt-3 break-words text-sm leading-6 text-black/60">
+            {error || "Your cart could not be loaded."}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/cart")}
+            className="mt-6 min-h-12 rounded-xl bg-[#7c5cff] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#6848e8]"
+          >
+            Return to cart
+          </button>
+        </div>
+      </main>
+    );
   }
 
   return (
     <main className="min-h-screen bg-[#f1edff] text-black">
-      <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
         <a
           href="/cart"
-          className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-black/50 transition hover:text-[#6b4ce6]"
+          className="inline-flex min-h-10 items-center gap-2 text-xs font-bold uppercase tracking-wider text-black/55 transition hover:text-[#7c5cff]"
         >
-          <span className="text-base">←</span>
-          Back to Cart
+          <span aria-hidden="true">←</span>
+          Back to cart
         </a>
 
-        <div className="mt-8">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#7c5cff]">
-            Secure checkout
-          </p>
-
-          <h1 className="mt-2 text-3xl font-black tracking-[-0.03em] sm:text-4xl">
-            Checkout
-          </h1>
-        </div>
-
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_380px]">
-          <form
-            onSubmit={handleSubmit}
-            className="rounded-3xl bg-white p-6 shadow-sm sm:p-8"
-          >
-            <h2 className="text-xl font-black">
-              Your details
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-black/50">
-              Enter your details before continuing to secure
-              payment.
-            </p>
-
-            <div className="mt-8 space-y-5">
-              <div>
-                <label
-                  htmlFor="customer-name"
-                  className="text-[10px] font-bold uppercase tracking-[0.15em] text-black/50"
-                >
-                  Full name
-                </label>
-
-                <input
-                  id="customer-name"
-                  type="text"
-                  value={customerName}
-                  onChange={(event) =>
-                    setCustomerName(event.target.value)
-                  }
-                  placeholder="Your full name"
-                  required
-                  autoComplete="name"
-                  className="mt-2 h-13 w-full rounded-xl border border-black/10 bg-white px-4 text-sm outline-none transition placeholder:text-black/30 focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10"
-                />
+        <div className="mt-6 grid gap-5 sm:mt-8 sm:gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+          <section className="min-w-0 rounded-3xl bg-white p-5 shadow-sm sm:p-8">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eee8ff] text-[#6948dc] sm:h-14 sm:w-14">
+                <CheckoutIcon />
               </div>
-
               <div>
-                <label
-                  htmlFor="customer-email"
-                  className="text-[10px] font-bold uppercase tracking-[0.15em] text-black/50"
-                >
-                  Email address
-                </label>
-
-                <input
-                  id="customer-email"
-                  type="email"
-                  value={customerEmail}
-                  onChange={(event) =>
-                    setCustomerEmail(event.target.value)
-                  }
-                  placeholder="you@example.com"
-                  required
-                  autoComplete="email"
-                  className="mt-2 h-13 w-full rounded-xl border border-black/10 bg-white px-4 text-sm outline-none transition placeholder:text-black/30 focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="customer-phone"
-                  className="text-[10px] font-bold uppercase tracking-[0.15em] text-black/50"
-                >
-                  Phone number
-                </label>
-
-                <input
-                  id="customer-phone"
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(event) =>
-                    setCustomerPhone(event.target.value)
-                  }
-                  placeholder="080..."
-                  required
-                  autoComplete="tel"
-                  className="mt-2 h-13 w-full rounded-xl border border-black/10 bg-white px-4 text-sm outline-none transition placeholder:text-black/30 focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/10"
-                />
+                <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
+                  Checkout
+                </h1>
+                <p className="mt-1 text-sm leading-5 text-black/55">
+                  Enter your contact details to continue to secure payment.
+                </p>
               </div>
             </div>
 
             {error && (
-              <div className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-xs font-semibold leading-5 text-red-600">
+              <div
+                role="alert"
+                className="mt-6 break-words rounded-2xl bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
+              >
                 {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="mt-8 flex h-14 w-full items-center justify-center rounded-xl bg-[#7c5cff] px-6 text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#6848e8] disabled:cursor-not-allowed disabled:bg-black/20 disabled:text-black/40"
-            >
-              {submitting
-                ? "Connecting to Paystack..."
-                : "Continue to Secure Payment"}
-            </button>
+            <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+              <div>
+                <label
+                  htmlFor="customerName"
+                  className="mb-2 block text-sm font-bold"
+                >
+                  Full name
+                </label>
+                <input
+                  id="customerName"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  maxLength={255}
+                  value={customerName}
+                  onChange={(event) => setCustomerName(event.target.value)}
+                  placeholder="Your full name"
+                  className="h-12 w-full rounded-xl border border-black/10 bg-[#fafafa] px-4 text-base outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/15"
+                />
+              </div>
 
-            <div className="mt-5 rounded-xl bg-[#f1edff] p-4">
-              <div className="flex gap-3">
-                <span className="text-lg">🔒</span>
+              <div>
+                <label
+                  htmlFor="customerEmail"
+                  className="mb-2 block text-sm font-bold"
+                >
+                  Email address
+                </label>
+                <input
+                  id="customerEmail"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  maxLength={254}
+                  value={customerEmail}
+                  onChange={(event) => setCustomerEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  className="h-12 w-full rounded-xl border border-black/10 bg-[#fafafa] px-4 text-base outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/15"
+                />
+              </div>
 
-                <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.12em]">
-                    Secure payment
-                  </p>
+              <div>
+                <label
+                  htmlFor="customerPhone"
+                  className="mb-2 block text-sm font-bold"
+                >
+                  Phone number
+                </label>
+                <input
+                  id="customerPhone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  required
+                  maxLength={20}
+                  value={customerPhone}
+                  onChange={(event) => setCustomerPhone(event.target.value)}
+                  placeholder="08012345678"
+                  className="h-12 w-full rounded-xl border border-black/10 bg-[#fafafa] px-4 text-base outline-none transition focus:border-[#7c5cff] focus:ring-2 focus:ring-[#7c5cff]/15"
+                />
+              </div>
 
-                  <p className="mt-1 text-[10px] leading-4 text-black/45">
-                    You'll be redirected to Paystack to
-                    securely complete your payment.
+              <div className="rounded-2xl bg-[#fff7f1] p-4 text-sm leading-6 text-black/70">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 text-lg" aria-hidden="true">
+                    🔒
+                  </span>
+                  <p>
+                    You will pay securely through Paystack. Delivery and pickup
+                    options will be available after your payment is verified.
                   </p>
                 </div>
               </div>
-            </div>
-          </form>
 
-          <aside className="h-fit rounded-3xl bg-white p-6 shadow-sm lg:sticky lg:top-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-black/40">
-              Your order
-            </p>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex min-h-14 w-full items-center justify-center rounded-xl bg-[#7c5cff] px-4 py-3 text-sm font-black text-white transition hover:bg-[#6848e8] disabled:cursor-not-allowed disabled:opacity-60 sm:text-base"
+              >
+                {submitting
+                  ? "Preparing secure payment..."
+                  : `Continue to Paystack · ${formatNaira(total)}`}
+              </button>
+            </form>
+          </section>
+
+          <aside className="h-fit min-w-0 rounded-3xl bg-white p-5 shadow-sm sm:p-8">
+            <h2 className="text-lg font-black">Your order</h2>
 
             <div className="mt-5 space-y-4">
               {cart.items.map((item) => (
                 <div
                   key={item.id}
-                  className="flex gap-3"
+                  className="flex items-start justify-between gap-3 border-b border-black/5 pb-4"
                 >
-                  <div className="h-16 w-14 shrink-0 overflow-hidden rounded-lg bg-[#ddd4ff]">
-                    {item.product.image && (
-                      <img
-                        src={item.product.image}
-                        alt={item.product.name}
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-bold">
                       {item.product.name}
                     </p>
-
-                    <p className="mt-1 text-[10px] text-black/45">
+                    <p className="mt-1 text-xs text-black/50">
+                      Qty: {item.quantity}
                       {item.selected_size
-                        ? `Size ${item.selected_size} · `
+                        ? ` · Size: ${item.selected_size}`
                         : ""}
-                      Qty {item.quantity}
                     </p>
                   </div>
-
-                  <p className="text-xs font-bold">
-                    ₦
-                    {(
-                      Number(item.product.price) *
-                      item.quantity
-                    ).toLocaleString("en-NG")}
+                  <p className="shrink-0 text-right text-sm font-bold">
+                    {formatNaira(
+                      Number(item.product.price) * item.quantity,
+                    )}
                   </p>
                 </div>
               ))}
             </div>
 
-            <div className="mt-6 border-t border-black/10 pt-5">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-black/50">
-                  Subtotal
-                </span>
-
-                <span className="text-sm font-bold">
-                  ₦{total.toLocaleString("en-NG")}
-                </span>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-sm font-bold">
-                  Total
-                </span>
-
-                <span className="text-xl font-black text-[#6b4ce6]">
-                  ₦{total.toLocaleString("en-NG")}
-                </span>
-              </div>
+            <div className="mt-6 flex items-center justify-between gap-3">
+              <span className="text-sm text-black/55">Subtotal</span>
+              <span className="text-lg font-black">
+                {formatNaira(total)}
+              </span>
             </div>
+
+            <p className="mt-4 text-xs leading-5 text-black/45">
+              Delivery or pickup arrangements will be available after
+              successful payment verification.
+            </p>
           </aside>
         </div>
       </div>

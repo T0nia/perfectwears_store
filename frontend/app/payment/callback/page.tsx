@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -8,13 +7,23 @@ type VerificationResponse = {
   message?: string;
   payment_status?: string;
   error?: string;
-  order?: {
-    id: string;
-    payment_status: string;
-  };
 };
 
-const API_URL = "https://perfectwears-backend.onrender.com/api";
+function getApiUrl() {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname === "localhost"
+  ) {
+    return "http://127.0.0.1:8000/api";
+  }
+
+  return "https://perfectwears-backend.onrender.com/api";
+}
+
 const PENDING_ORDER_KEY = "perfectwears_pending_order_id";
 
 function PaymentVerification() {
@@ -22,24 +31,29 @@ function PaymentVerification() {
   const searchParams = useSearchParams();
 
   const [message, setMessage] = useState("Verifying your payment...");
-  const [error, setError] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function verifyPayment() {
-      const reference = searchParams.get("reference");
+      const reference =
+        searchParams.get("reference") ||
+        searchParams.get("trxref");
+
       const orderId = localStorage.getItem(PENDING_ORDER_KEY);
 
       if (!reference || !orderId) {
-        setError(true);
+        setHasError(true);
         setMessage(
-          "We could not find your payment details. Please contact Perfectwears if you were charged.",
+          "We could not find your payment details. If you were charged, please contact Perfectwears and provide your payment reference.",
         );
         return;
       }
 
       try {
         const response = await fetch(
-          `${API_URL}/orders/verify-payment/`,
+          `${getApiUrl()}/orders/verify-payment/`,
           {
             method: "POST",
             headers: {
@@ -55,77 +69,76 @@ function PaymentVerification() {
         const data: VerificationResponse = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.error || "Payment verification failed.",
-          );
+          throw new Error(data.error || "Payment verification failed.");
         }
 
         if (data.payment_status !== "PAID") {
           throw new Error(
-            "Your payment has not been confirmed yet.",
+            "Your payment has not been confirmed. Please do not pay again. If you were charged, contact Perfectwears.",
           );
         }
 
+        if (cancelled) {
+          return;
+        }
+
         localStorage.removeItem(PENDING_ORDER_KEY);
-
-        router.replace(`/payment/success?order=${orderId}`);
+        router.replace(`/payment/success?order=${encodeURIComponent(orderId)}`);
       } catch (err) {
-        console.error(err);
+        if (cancelled) {
+          return;
+        }
 
-        setError(true);
+        console.error(err);
+        setHasError(true);
         setMessage(
           err instanceof Error
             ? err.message
-            : "We could not verify your payment.",
+            : "We could not verify your payment. Please contact Perfectwears if you were charged.",
         );
       }
     }
 
     verifyPayment();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, searchParams]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f1edff] px-5 text-black">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
-        {!error ? (
-          <>
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#7c5cff] text-2xl text-white">
-              🔒
-            </div>
+        <div
+          className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full text-2xl text-white ${
+            hasError ? "bg-red-500" : "bg-[#7c5cff]"
+          }`}
+        >
+          {hasError ? "!" : "🔒"}
+        </div>
 
-            <h1 className="mt-6 text-2xl font-black">
-              Verifying payment
-            </h1>
+        <h1 className="mt-6 text-2xl font-black">
+          {hasError ? "Payment not confirmed" : "Verifying your payment"}
+        </h1>
 
-            <p className="mt-3 text-sm leading-6 text-black/50">
-              Please wait while we securely confirm your
-              payment with Paystack.
-            </p>
+        <p className="mt-3 text-sm leading-6 text-black/55">
+          {hasError
+            ? message
+            : "Please wait while we securely confirm your payment with Paystack."}
+        </p>
 
-            <div className="mx-auto mt-6 h-6 w-6 animate-spin rounded-full border-2 border-[#7c5cff]/20 border-t-[#7c5cff]" />
-          </>
-        ) : (
-          <>
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-2xl">
-              !
-            </div>
+        {!hasError && (
+          <div className="mx-auto mt-6 h-6 w-6 animate-spin rounded-full border-2 border-[#7c5cff]/20 border-t-[#7c5cff]" />
+        )}
 
-            <h1 className="mt-6 text-2xl font-black">
-              Payment verification
-            </h1>
-
-            <p className="mt-3 text-sm leading-6 text-black/50">
-              {message}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => router.push("/cart")}
-              className="mt-7 h-12 w-full rounded-xl bg-[#7c5cff] text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-[#6848e8]"
-            >
-              Return to Cart
-            </button>
-          </>
+        {hasError && (
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="mt-7 h-12 w-full rounded-xl bg-[#7c5cff] text-xs font-black uppercase tracking-wider text-white hover:bg-[#6848e8]"
+          >
+            Return to store
+          </button>
         )}
       </div>
     </main>
@@ -136,19 +149,10 @@ function CallbackLoading() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f1edff] px-5 text-black">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#7c5cff] text-2xl text-white">
-          🔒
-        </div>
-
-        <h1 className="mt-6 text-2xl font-black">
-          Verifying payment
-        </h1>
-
-        <p className="mt-3 text-sm leading-6 text-black/50">
+        <h1 className="text-2xl font-black">Verifying your payment</h1>
+        <p className="mt-3 text-sm text-black/55">
           Please wait while we securely confirm your payment.
         </p>
-
-        <div className="mx-auto mt-6 h-6 w-6 animate-spin rounded-full border-2 border-[#7c5cff]/20 border-t-[#7c5cff]" />
       </div>
     </main>
   );
