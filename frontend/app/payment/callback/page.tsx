@@ -1,12 +1,38 @@
+
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+type OrderItem = {
+  id: string;
+  quantity: number;
+  selected_size: string | null;
+  product: {
+    id: string;
+    name: string;
+    price: string | number;
+    image?: string | null;
+  };
+};
+
+type VerifiedOrder = {
+  id: string;
+  total_amount: string | number;
+  payment_reference: string | null;
+  payment_status: string;
+  order_status: string;
+  delivery_method: string | null;
+  created_at: string;
+  items: OrderItem[];
+};
+
 type VerificationResponse = {
   message?: string;
   payment_status?: string;
   error?: string;
+  detail?: string;
+  order?: VerifiedOrder;
 };
 
 function getApiUrl() {
@@ -26,6 +52,7 @@ function getApiUrl() {
 
 const CART_STORAGE_KEY = "perfectwears_cart_id";
 const PENDING_ORDER_KEY = "perfectwears_pending_order_id";
+const VERIFIED_ORDER_KEY = "perfectwears_verified_order";
 
 function PaymentVerification() {
   const router = useRouter();
@@ -47,7 +74,7 @@ function PaymentVerification() {
       if (!reference || !orderId) {
         setHasError(true);
         setMessage(
-          "We could not find your payment details. If you were charged, please contact Perfectwears and provide your payment reference.",
+          "We could not find your payment details. If you were charged, please contact Perfectwears and provide your Paystack payment reference.",
         );
         return;
       }
@@ -70,10 +97,17 @@ function PaymentVerification() {
         const data: VerificationResponse = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || "Payment verification failed.");
+          throw new Error(
+            data.error ||
+              data.detail ||
+              "Payment verification failed.",
+          );
         }
 
-        if (data.payment_status !== "PAID") {
+        if (
+          data.payment_status !== "PAID" ||
+          data.order?.payment_status !== "PAID"
+        ) {
           throw new Error(
             "Your payment has not been confirmed. Please do not pay again. If you were charged, contact Perfectwears.",
           );
@@ -83,8 +117,12 @@ function PaymentVerification() {
           return;
         }
 
-        // Only clear the cart after the backend confirms payment.
-        // Keep the paid order recorded on the backend.
+        // Save the backend-verified order before clearing the active cart.
+        sessionStorage.setItem(
+          VERIFIED_ORDER_KEY,
+          JSON.stringify(data.order),
+        );
+
         localStorage.removeItem(CART_STORAGE_KEY);
         localStorage.removeItem(PENDING_ORDER_KEY);
 
@@ -98,12 +136,12 @@ function PaymentVerification() {
           return;
         }
 
-        console.error(err);
+        console.error("Payment verification error:", err);
         setHasError(true);
         setMessage(
           err instanceof Error
             ? err.message
-            : "We could not verify your payment. Please contact Perfectwears if you were charged.",
+            : "We could not verify your payment. If you were charged, please contact Perfectwears.",
         );
       }
     }
@@ -119,21 +157,23 @@ function PaymentVerification() {
     <main className="flex min-h-screen items-center justify-center bg-[#f1edff] px-5 text-black">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
         <div
-          className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full text-2xl text-white ${
+          className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full text-2xl font-black text-white ${
             hasError ? "bg-red-500" : "bg-[#7c5cff]"
           }`}
         >
-          {hasError ? "!" : "🔒"}
+          {hasError ? "!" : "✓"}
         </div>
 
         <h1 className="mt-6 text-2xl font-black">
-          {hasError ? "Payment not confirmed" : "Verifying your payment"}
+          {hasError
+            ? "Payment not confirmed"
+            : "Verifying your payment"}
         </h1>
 
-        <p className="mt-3 text-sm leading-6 text-black/55">
+        <p className="mt-3 text-sm leading-6 text-black/60">
           {hasError
             ? message
-            : "Please wait while we securely confirm your payment with Paystack."}
+            : "Please wait while we securely confirm your payment with Paystack. Do not close this page."}
         </p>
 
         {!hasError && (
@@ -141,13 +181,12 @@ function PaymentVerification() {
         )}
 
         {hasError && (
-          <button
-            type="button"
-            onClick={() => router.push("/")}
-            className="mt-7 h-12 w-full rounded-xl bg-[#7c5cff] text-xs font-black uppercase tracking-wider text-white hover:bg-[#6848e8]"
+          <a
+            href="/"
+            className="mt-7 flex h-12 w-full items-center justify-center rounded-xl bg-[#7c5cff] text-xs font-black uppercase tracking-wider text-white hover:bg-[#6848e8]"
           >
             Return to store
-          </button>
+          </a>
         )}
       </div>
     </main>
@@ -158,8 +197,10 @@ function CallbackLoading() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f1edff] px-5 text-black">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-black">Verifying your payment</h1>
-        <p className="mt-3 text-sm text-black/55">
+        <h1 className="text-2xl font-black">
+          Verifying your payment
+        </h1>
+        <p className="mt-3 text-sm text-black/60">
           Please wait while we securely confirm your payment.
         </p>
       </div>
