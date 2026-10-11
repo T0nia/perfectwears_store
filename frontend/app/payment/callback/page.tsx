@@ -24,6 +24,7 @@ function getApiUrl() {
   return "https://perfectwears-backend.onrender.com/api";
 }
 
+const CART_STORAGE_KEY = "perfectwears_cart_id";
 const PENDING_ORDER_KEY = "perfectwears_pending_order_id";
 
 function PaymentVerification() {
@@ -82,8 +83,16 @@ function PaymentVerification() {
           return;
         }
 
+        // Only clear the cart after the backend confirms payment.
+        // Keep the paid order recorded on the backend.
+        localStorage.removeItem(CART_STORAGE_KEY);
         localStorage.removeItem(PENDING_ORDER_KEY);
-        router.replace(`/payment/success?order=${encodeURIComponent(orderId)}`);
+
+        window.dispatchEvent(new Event("cart-updated"));
+
+        router.replace(
+          `/payment/success?order=${encodeURIComponent(orderId)}`,
+        );
       } catch (err) {
         if (cancelled) {
           return;
