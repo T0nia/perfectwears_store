@@ -1,12 +1,30 @@
-
 from rest_framework import serializers
 
-from cart.serializers import CartItemSerializer
-from .models import Order
+from .models import Order, OrderItem
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    line_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "unit_price",
+            "quantity",
+            "selected_size",
+            "line_total",
+        ]
+        read_only_fields = fields
+
+    def get_line_total(self, obj):
+        return str(obj.line_total)
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = serializers.SerializerMethodField()
+    items = OrderItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order
@@ -25,26 +43,4 @@ class OrderSerializer(serializers.ModelSerializer):
             "created_at",
             "items",
         ]
-
-        read_only_fields = [
-            "id",
-            "total_amount",
-            "payment_reference",
-            "payment_status",
-            "order_status",
-            "delivery_method",
-            "created_at",
-            "items",
-        ]
-
-    def get_items(self, obj):
-        cart_items = obj.cart.items.select_related(
-            "product",
-            "product__category",
-        ).all()
-
-        return CartItemSerializer(
-            cart_items,
-            many=True,
-            context=self.context,
-        ).data
+        read_only_fields = fields

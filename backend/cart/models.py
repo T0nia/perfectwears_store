@@ -1,5 +1,7 @@
-from django.db import models
+
 import uuid
+
+from django.db import models
 
 from products.models import Product
 
@@ -8,11 +10,11 @@ class Cart(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
-        editable=False
+        editable=False,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     def __str__(self):
@@ -23,26 +25,26 @@ class CartItem(models.Model):
     cart = models.ForeignKey(
         Cart,
         on_delete=models.CASCADE,
-        related_name="items"
+        related_name="items",
     )
 
     product = models.ForeignKey(
         Product,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
 
     quantity = models.PositiveIntegerField(
-        default=1
+        default=1,
     )
 
     selected_size = models.CharField(
         max_length=20,
         blank=True,
-        null=True
+        null=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     class Meta:

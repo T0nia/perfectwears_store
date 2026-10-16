@@ -1,23 +1,23 @@
-
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type OrderItem = {
-  id: string;
+  id: number | string;
+  product: string | null;
+  product_name: string;
+  unit_price: string | number;
   quantity: number;
   selected_size: string | null;
-  product: {
-    id: string;
-    name: string;
-    price: string | number;
-    image?: string | null;
-  };
+  line_total: string | number;
 };
 
 type VerifiedOrder = {
   id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
   total_amount: string | number;
   payment_reference: string | null;
   payment_status: string;
@@ -113,11 +113,11 @@ function PaymentVerification() {
           );
         }
 
-        if (cancelled) {
+        if (cancelled || !data.order) {
           return;
         }
 
-        // Save the backend-verified order before clearing the active cart.
+        // Store the backend-verified order before clearing the active cart.
         sessionStorage.setItem(
           VERIFIED_ORDER_KEY,
           JSON.stringify(data.order),
