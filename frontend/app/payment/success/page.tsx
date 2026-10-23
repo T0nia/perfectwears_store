@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -33,12 +32,7 @@ type DeliveryResponse = {
 };
 
 const VERIFIED_ORDER_KEY = "perfectwears_verified_order";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "development"
-    ? "http://127.0.0.1:8000/api"
-    : "https://perfectwears-backend.onrender.com/api");
+const API_URL = "https://perfectwears-backend.onrender.com/api";
 
 const PICKUP_ADDRESS =
   "SHOP E2 SENIOR BEACON PLAZA OPP. OLD CENTRAL BANK, Lagos";
@@ -58,7 +52,6 @@ const SUPPORT_EMAIL = "theperfectwearstore@gmail.com";
 // Best-effort app deep link. Availability depends on the customer's device
 // and whether the Bolt app supports this link on that device.
 const BOLT_APP_URL = "bolt://";
-const BOLT_FALLBACK_URL = "https://bolt.eu/";
 
 function formatNaira(value: string | number) {
   const amount = Number(value);
@@ -233,9 +226,7 @@ function PaymentSuccessContent() {
                   </div>
 
                   <div className="mt-5 border-t border-black/10 pt-5">
-                    <h2 className="text-lg font-black">
-                      Your receipt
-                    </h2>
+                    <h2 className="text-lg font-black">Your receipt</h2>
 
                     {order.items?.length ? (
                       <div className="mt-3 divide-y divide-black/10">
@@ -338,9 +329,7 @@ function PaymentSuccessContent() {
                         <button
                           type="button"
                           disabled={savingDelivery}
-                          onClick={() =>
-                            chooseDeliveryMethod("BOLT")
-                          }
+                          onClick={() => chooseDeliveryMethod("BOLT")}
                           className="flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 border-[#7c5cff]/20 bg-white p-4 text-center transition hover:border-[#7c5cff] hover:bg-[#f8f5ff] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <span className="text-2xl" aria-hidden="true">
@@ -359,9 +348,7 @@ function PaymentSuccessContent() {
                         <button
                           type="button"
                           disabled={savingDelivery}
-                          onClick={() =>
-                            chooseDeliveryMethod("STORE_PICKUP")
-                          }
+                          onClick={() => chooseDeliveryMethod("STORE_PICKUP")}
                           className="flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 border-[#7c5cff]/20 bg-white p-4 text-center transition hover:border-[#7c5cff] hover:bg-[#f8f5ff] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <span className="text-2xl" aria-hidden="true">
@@ -450,15 +437,6 @@ function PaymentSuccessContent() {
                       >
                         🚗 Try opening the Bolt app
                       </a>
-
-                      <a
-                        href={BOLT_FALLBACK_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-3 flex min-h-11 items-center justify-center rounded-xl border border-black/10 px-5 py-3 text-center text-sm font-bold transition hover:bg-black/5"
-                      >
-                        Bolt website fallback
-                      </a>
                     </div>
                   )}
 
@@ -472,9 +450,7 @@ function PaymentSuccessContent() {
                   )}
 
                   <div className="mt-5 border-t border-black/10 pt-5">
-                    <h3 className="font-black">
-                      Need help with your order?
-                    </h3>
+                    <h3 className="font-black">Need help with your order?</h3>
 
                     <p className="mt-1 text-sm leading-6 text-black/65">
                       Message us on WhatsApp if you need help with
@@ -494,7 +470,7 @@ function PaymentSuccessContent() {
                         aria-hidden="true"
                         className="h-5 w-5"
                       >
-                        <path d="M20.52 3.48A11.78 11.78 0 0 0 12.12 0C5.55 0 .2 5.35.2 11.92c0 2.1.55 4.15 1.6 5.96L.1 24l6.27-1.65a11.9 11.9 0 0 0 5.74 1.46h.01c6.57 0 11.92-5.35 11.92-11.92 0-3.18-1.24-6.17-3.52-8.41ZM12.12 21.8a9.88 9.88 0 0 1-5.04-1.38l-.36-.21-3.72.98.99-3.63-.24-.37a9.85 9.85 0 0 1-1.51-5.27c0-5.45 4.44-9.89 9.9-9.89 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.9 6.99c0 5.46-4.44 9.88-9.91 9.88Zm5.43-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.8-1.49-1.78-1.66-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.49.71.31 1.27.5 1.7.64.72.23 1.37.2 1.88.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z" />
+                        <path d="M20.52 3.48A11.78 11.78 0 0 0 12.12 0C5.55 0 .2 5.35.2 11.92c0 2.1.55 4.15 1.6 5.96L.1 24l6.27-1.65a11.9 11.9 0 0 0 5.74 1.46h.01c6.57 0 11.92-5.35 11.92-11.92 0-3.18-1.24-6.17-3.52-8.41ZM12.12 21.8a9.88 9.88 0 0 1-5.04-1.38l-.36-.21-3.72.98.99-3.63-.24-.37a9.85 9.85 0 0 1-1.51-5.27c0-5.45 4.44-9.89 9.9-9.89 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.9 6.99c0 5.46-4.44 9.88-9.91 9.88Zm5.43-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.8-1.49-1.78-1.66-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.49.71.31 1.27.5 1.7.64.72.23 1.37.2 1.88.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z" />
                       </svg>
 
                       WhatsApp Customer Care
@@ -533,9 +509,7 @@ function PaymentSuccessContent() {
             )}
 
             <section className="text-center">
-              <p className="text-sm font-bold">
-                Stay connected with us
-              </p>
+              <p className="text-sm font-bold">Stay connected with us</p>
 
               <div className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold">
                 <a
@@ -588,9 +562,7 @@ function SuccessLoading() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f1edff] px-5 text-black">
       <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-        <p className="font-bold">
-          Loading your order confirmation...
-        </p>
+        <p className="font-bold">Loading your order confirmation...</p>
       </div>
     </main>
   );

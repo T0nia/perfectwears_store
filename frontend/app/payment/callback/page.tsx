@@ -35,20 +35,7 @@ type VerificationResponse = {
   order?: VerifiedOrder;
 };
 
-function getApiUrl() {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
-  }
-
-  if (
-    typeof window !== "undefined" &&
-    window.location.hostname === "localhost"
-  ) {
-    return "http://127.0.0.1:8000/api";
-  }
-
-  return "https://perfectwears-backend.onrender.com/api";
-}
+const API_URL = "https://perfectwears-backend.onrender.com/api";
 
 const CART_STORAGE_KEY = "perfectwears_cart_id";
 const PENDING_ORDER_KEY = "perfectwears_pending_order_id";
@@ -81,7 +68,7 @@ function PaymentVerification() {
 
       try {
         const response = await fetch(
-          `${getApiUrl()}/orders/verify-payment/`,
+          `${API_URL}/orders/verify-payment/`,
           {
             method: "POST",
             headers: {
@@ -117,7 +104,6 @@ function PaymentVerification() {
           return;
         }
 
-        // Store the backend-verified order before clearing the active cart.
         sessionStorage.setItem(
           VERIFIED_ORDER_KEY,
           JSON.stringify(data.order),

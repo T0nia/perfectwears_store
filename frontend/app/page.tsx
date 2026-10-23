@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -30,6 +30,12 @@ type ProductResponse = {
 
 const API_URL =
   "https://perfectwears-backend.onrender.com/api/products/";
+
+const WHATSAPP_URL = "https://wa.me/qr/O74M6IXLXIC4I1";
+const INSTAGRAM_URL =
+  "https://www.instagram.com/theperfectwearstore?utm_source=qr&stkn=N2Qzc3dweW01MzJ6";
+const TIKTOK_URL = "https://tiktok.com/@perfectwearstore";
+const EMAIL_ADDRESS = "mailto:theperfectwearstore@gmail.com";
 
 const categories = [
   { name: "All", slug: "all" },
@@ -134,12 +140,14 @@ export default function Home() {
       {/* Top utility bar */}
       <div className="hidden bg-[#111111] px-5 py-2 text-[10px] font-medium text-white/75 sm:block">
         <div className="mx-auto flex max-w-[1400px] items-center justify-end gap-7">
-          <button
-            type="button"
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="transition hover:text-white"
           >
             Help & Contact
-          </button>
+          </a>
         </div>
       </div>
 
@@ -223,8 +231,8 @@ export default function Home() {
 
           {/* Account + cart */}
           <div className="flex shrink-0 items-center gap-3 sm:gap-5">
-            <button
-              type="button"
+            <a
+              href="/login"
               className="hidden items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/80 transition hover:text-white sm:flex"
             >
               <svg
@@ -241,10 +249,10 @@ export default function Home() {
               </svg>
 
               Log In
-            </button>
+            </a>
 
-            <button
-              type="button"
+            <a
+              href="/cart"
               aria-label="Shopping cart"
               className="relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white/80 transition hover:text-white"
             >
@@ -269,7 +277,7 @@ export default function Home() {
                   {cartCount}
                 </span>
               )}
-            </button>
+            </a>
 
             {/* Mobile menu */}
             <button
@@ -313,7 +321,6 @@ export default function Home() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-[#e9e9e7]">
         <div className="mx-auto grid min-h-[540px] max-w-[1400px] lg:min-h-[620px] lg:grid-cols-2">
-          {/* Hero copy */}
           <div className="relative z-10 flex items-center px-6 py-16 sm:px-10 sm:py-20 lg:px-14 lg:py-24">
             <div className="max-w-[570px]">
               <p className="mb-5 text-[10px] font-bold uppercase tracking-[0.34em] text-black/45 sm:text-xs">
@@ -339,7 +346,6 @@ export default function Home() {
                 className="group mt-8 inline-flex h-12 items-center gap-4 border border-black bg-transparent px-6 text-[10px] font-bold uppercase tracking-[0.18em] transition hover:bg-black hover:text-white"
               >
                 Shop Now
-
                 <span className="text-base transition-transform group-hover:translate-x-1">
                   →
                 </span>
@@ -347,7 +353,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Hero image */}
           <div className="relative min-h-[430px] overflow-hidden bg-[#deddd9] lg:min-h-0">
             <img
               src="/perfectwears-hero.jpg"
@@ -362,18 +367,13 @@ export default function Home() {
       </section>
 
       {/* Feature strip */}
-
       <section className="border-b border-black/10 bg-white">
         <div className="mx-auto grid max-w-[1400px] gap-3 px-4 py-4 sm:grid-cols-3 sm:gap-0 sm:px-0 sm:py-0">
-
-          {/* Same Day Delivery */}
           <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-[#fff0e6] px-5 py-6 transition-all duration-300 hover:shadow-sm sm:rounded-none sm:px-8 sm:py-8 lg:px-12">
             <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#ffd7c2]/60" />
-
             <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-[0_4px_15px_rgba(0,0,0,0.06)] transition-transform duration-300 group-hover:scale-105">
               🚚
             </div>
-
             <div className="relative">
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-black">
                 Same Day Delivery
@@ -384,14 +384,11 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Secure Payments */}
           <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-[#f1edff] px-5 py-6 transition-all duration-300 hover:shadow-sm sm:rounded-none sm:border-l sm:border-r sm:border-black/10 sm:px-8 sm:py-8 lg:px-12">
             <div className="absolute -bottom-8 -right-8 h-24 w-24 rounded-full bg-[#ddd4ff]/70" />
-
             <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-[0_4px_15px_rgba(0,0,0,0.06)] transition-transform duration-300 group-hover:scale-105">
               🔒
             </div>
-
             <div className="relative">
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-black">
                 Secure Payments
@@ -402,14 +399,16 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Customer Support */}
-          <div className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-[#fff0e6] px-5 py-6 transition-all duration-300 hover:shadow-sm sm:rounded-none sm:px-8 sm:py-8 lg:px-12">
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group relative flex items-center gap-4 overflow-hidden rounded-2xl bg-[#fff0e6] px-5 py-6 transition-all duration-300 hover:shadow-sm sm:rounded-none sm:px-8 sm:py-8 lg:px-12"
+          >
             <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#ffd7c2]/60" />
-
             <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-[0_4px_15px_rgba(0,0,0,0.06)] transition-transform duration-300 group-hover:scale-105">
               💬
             </div>
-
             <div className="relative">
               <p className="text-[10px] font-black uppercase tracking-[0.14em] text-black">
                 Customer Support
@@ -418,12 +417,9 @@ export default function Home() {
                 We're here whenever you need us
               </p>
             </div>
-          </div>
-
+          </a>
         </div>
       </section>
-
-
 
       {/* Collection */}
       <section
@@ -435,9 +431,7 @@ export default function Home() {
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.32em] text-black/35">
               {activeCategory === "all"
                 ? "Shop Our Collection"
-                : categories.find(
-                    (item) => item.slug === activeCategory,
-                  )?.name}
+                : categories.find((item) => item.slug === activeCategory)?.name}
             </p>
 
             <h2 className="text-3xl font-black tracking-[-0.035em] sm:text-5xl">
@@ -468,7 +462,6 @@ export default function Home() {
         {!loading && error && (
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-14 text-center">
             <p className="text-sm text-black/55">{error}</p>
-
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -482,7 +475,6 @@ export default function Home() {
         {!loading && !error && filteredProducts.length === 0 && (
           <div className="rounded-2xl border border-black/10 bg-white px-6 py-20 text-center">
             <p className="text-lg font-bold">Nothing here yet.</p>
-
             <p className="mt-2 text-sm text-black/45">
               New pieces are being added to this collection.
             </p>
@@ -578,7 +570,6 @@ export default function Home() {
       <footer className="bg-[#f7f5f1]">
         <div className="mx-auto max-w-[1400px] px-5 py-14 sm:px-8 lg:px-12">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Brand */}
             <div className="sm:col-span-2">
               <img
                 src="/perfectwears-logo.jpg"
@@ -601,9 +592,11 @@ export default function Home() {
               <div className="mt-5 grid max-w-xs grid-cols-5 gap-2 sm:max-w-sm sm:gap-3">
                 {/* WhatsApp */}
                 <a
-                  href="#"
+                  href={WHATSAPP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="WhatsApp"
-                  onClick={(event) => event.preventDefault()}
+                  title="Chat with us on WhatsApp"
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
                 >
                   <svg
@@ -619,9 +612,11 @@ export default function Home() {
 
                 {/* Instagram */}
                 <a
-                  href="#"
+                  href={INSTAGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="Instagram"
-                  onClick={(event) => event.preventDefault()}
+                  title="Follow us on Instagram"
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
                 >
                   <svg
@@ -647,9 +642,11 @@ export default function Home() {
 
                 {/* TikTok */}
                 <a
-                  href="#"
+                  href={TIKTOK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="TikTok"
-                  onClick={(event) => event.preventDefault()}
+                  title="Follow us on TikTok"
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
                 >
                   <svg
@@ -663,12 +660,12 @@ export default function Home() {
                   </svg>
                 </a>
 
-                {/* X / Twitter */}
-                <a
-                  href="#"
-                  aria-label="X"
-                  onClick={(event) => event.preventDefault()}
-                  className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
+                {/* X profile not supplied: disabled until the official URL is known */}
+                <span
+                  aria-label="X profile not configured"
+                  title="X profile not configured"
+                  aria-disabled="true"
+                  className="flex h-11 w-11 cursor-not-allowed items-center justify-center rounded-full border border-black/10 bg-white text-black/25"
                 >
                   <svg
                     width="19"
@@ -679,12 +676,13 @@ export default function Home() {
                   >
                     <path d="M18.9 2H22l-6.77 7.74L23.2 22h-6.25l-4.9-6.41L6.44 22H3.33l7.24-8.28L2.8 2h6.41l4.43 5.86L18.9 2Zm-1.1 17.92h1.73L8.27 3.96H6.41L17.8 19.92Z" />
                   </svg>
-                </a>
+                </span>
 
                 {/* Email */}
                 <a
-                  href="mailto:"
+                  href={EMAIL_ADDRESS}
                   aria-label="Email"
+                  title="Email Perfectwears"
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-black/60 transition hover:border-black/30 hover:text-black"
                 >
                   <svg
@@ -700,6 +698,27 @@ export default function Home() {
                     <path d="m4 7 8 6 8-6" />
                   </svg>
                 </a>
+              </div>
+
+              <div className="mt-5 space-y-2 text-xs text-black/55">
+                <p>
+                  <a
+                    href={EMAIL_ADDRESS}
+                    className="transition hover:text-black"
+                  >
+                    theperfectwearstore@gmail.com
+                  </a>
+                </p>
+                <p>
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition hover:text-black"
+                  >
+                    Chat with us on WhatsApp
+                  </a>
+                </p>
               </div>
             </div>
           </div>
