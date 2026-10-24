@@ -1,577 +1,604 @@
+
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
-type OrderItem = {
-  id: number | string;
-  product: string | null;
-  product_name: string;
-  unit_price: string | number;
-  quantity: number;
-  selected_size: string | null;
-  line_total: string | number;
-};
+const STORAGE_KEY = "perfectwears_verified_order";
 
-type VerifiedOrder = {
-  id: string;
-  total_amount: string | number;
-  payment_reference: string | null;
-  payment_status: string;
-  order_status: string;
-  delivery_method: "BOLT" | "STORE_PICKUP" | null;
-  created_at: string;
-  items: OrderItem[];
-};
+const STORE_ADDRESS =
+  "SHOP E2 SENIOR BEACON PLAZA OPP. OLD CENTRAL BANK, Lagos, Nigeria";
 
-type DeliveryResponse = {
-  message?: string;
-  error?: string;
-  detail?: string;
-  order?: VerifiedOrder;
-};
+const MAPS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(STORE_ADDRESS)}&travelmode=driving`;
 
-const VERIFIED_ORDER_KEY = "perfectwears_verified_order";
-const API_URL = "https://perfectwears-backend.onrender.com/api";
-
-const PICKUP_ADDRESS =
-  "SHOP E2 SENIOR BEACON PLAZA OPP. OLD CENTRAL BANK, Lagos";
-
-const MAPS_URL =
-  "https://www.google.com/maps/search/?api=1&query=SHOP%20E2%20SENIOR%20BEACON%20PLAZA%20OPP.%20OLD%20CENTRAL%20BANK%2C%20Lagos%2C%20Nigeria";
+const BOLT_APP_URL = "bolt://";
+const BOLT_DOWNLOAD_URL = "https://bolt.eu/";
 
 const WHATSAPP_URL = "https://wa.me/qr/O74M6IXLXIC4I1";
-
 const INSTAGRAM_URL =
   "https://www.instagram.com/theperfectwearstore?utm_source=qr&stkn=N2Qzc3dweW01MzJ6";
-
 const TIKTOK_URL = "https://tiktok.com/@perfectwearstore";
-
 const SUPPORT_EMAIL = "theperfectwearstore@gmail.com";
 
-// Best-effort app deep link. Availability depends on the customer's device
-// and whether the Bolt app supports this link on that device.
-const BOLT_APP_URL = "bolt://";
+type OrderItem = {
+  id?: string | number;
+  product?:
+    | string
+    | {
+        name?: string;
+        title?: string;
+        image?: string;
+        image_url?: string;
+      };
+  product_name?: string;
+  product_image?: string;
+  image?: string;
+  unit_price?: string | number;
+  quantity: number;
+  selected_size?: string | null;
+  line_total?: string | number;
+};
 
-function formatNaira(value: string | number) {
-  const amount = Number(value);
+type Order = {
+  id: string;
+  total_amount: string | number;
+  payment_reference?: string;
+  payment_status: string;
+  order_status?: string;
+  delivery_method?: string | null;
+  items?: OrderItem[];
+};
 
+function naira(value: string | number | undefined) {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: "NGN",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(Number.isFinite(amount) ? amount : 0);
+  }).format(Number(value ?? 0));
 }
 
-function getMessage(data: DeliveryResponse, fallback: string) {
-  return data.error || data.detail || fallback;
+function Icon({
+  name,
+  size = 22,
+}: {
+  name: string;
+  size?: number;
+}) {
+  const props = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
+  };
+
+  switch (name) {
+    case "check":
+      return (
+        <svg {...props}>
+          <path d="m5 12 4 4L19 6" />
+        </svg>
+      );
+
+    case "receipt":
+      return (
+        <svg {...props}>
+          <path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z" />
+          <path d="M8 8h8M8 12h8M8 16h5" />
+        </svg>
+      );
+
+    case "truck":
+      return (
+        <svg {...props}>
+          <path d="M2.5 7h11.5v10H2.5z" />
+          <path d="M14 10h4l3.5 3.5V17H14z" />
+          <path d="M17 10v3.5h4.5" />
+          <circle cx="7" cy="18" r="1.7" />
+          <circle cx="17.5" cy="18" r="1.7" />
+        </svg>
+      );
+
+    case "arrow":
+      return (
+        <svg {...props}>
+          <path d="M5 12h14m-7-7 7 7-7 7" />
+        </svg>
+      );
+
+    case "whatsapp":
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M20.5 3.5A11.7 11.7 0 0 0 12.1 0C5.6 0 .3 5.3.3 11.8c0 2.1.6 4.2 1.6 6L.2 24l6.4-1.7a11.8 11.8 0 0 0 5.5 1.4h.1c6.5 0 11.8-5.3 11.8-11.8 0-3.2-1.2-6.1-3.5-8.4ZM12.1 21.7c-1.7 0-3.4-.5-4.8-1.3l-.4-.2-3.8 1 1-3.7-.3-.4a9.8 9.8 0 1 1 8.3 4.6Zm5.4-7.3c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.2-.2.3-.8.9-1 1.1-.2.2-.4.2-.7.1-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.5-.6c.1-.2.2-.4.3-.5.1-.2 0-.4 0-.6-.1-.2-.7-1.6-.9-2.1-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.6.1-.9.4-.3.3-1.1 1.1-1.1 2.5s1.1 2.8 1.3 3c.2.3 2.2 3.3 5.3 4.6.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4-.1-.2-.3-.3-.7-.5Z" />
+        </svg>
+      );
+
+    case "instagram":
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="ig-gradient" x1="0" y1="24" x2="24" y2="0">
+              <stop offset="0%" stopColor="#FFD600" />
+              <stop offset="45%" stopColor="#FF0069" />
+              <stop offset="100%" stopColor="#7638FA" />
+            </linearGradient>
+          </defs>
+          <rect
+            x="3"
+            y="3"
+            width="18"
+            height="18"
+            rx="5"
+            stroke="url(#ig-gradient)"
+            strokeWidth="2.5"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="4"
+            stroke="url(#ig-gradient)"
+            strokeWidth="2.5"
+          />
+          <circle cx="17.5" cy="6.8" r="1.2" fill="#FF0069" />
+        </svg>
+      );
+
+    case "tiktok":
+      return (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path d="M19.6 6.1a6.6 6.6 0 0 1-4.1-3.8V2h-3.8v13.6a2.8 2.8 0 1 1-2-2.7V9a6.6 6.6 0 1 0 5.8 6.6V9.2a10.2 10.2 0 0 0 4.1 1V6.4l-.1-.3Z" />
+        </svg>
+      );
+
+    case "mail":
+      return (
+        <svg {...props}>
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="m4 7 8 6 8-6" />
+        </svg>
+      );
+
+    default:
+      return null;
+  }
 }
 
-function PaymentSuccessContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [order, setOrder] = useState<VerifiedOrder | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [savingDelivery, setSavingDelivery] = useState(false);
-  const [deliveryError, setDeliveryError] = useState("");
-
-  const orderId = searchParams.get("order");
-
-  useEffect(() => {
-    try {
-      const storedOrder = sessionStorage.getItem(VERIFIED_ORDER_KEY);
-
-      if (storedOrder) {
-        const parsed = JSON.parse(storedOrder) as VerifiedOrder;
-
-        if (
-          parsed.payment_status === "PAID" &&
-          (!orderId || parsed.id === orderId)
-        ) {
-          setOrder(parsed);
-        }
-      }
-    } catch (error) {
-      console.error("Could not load the order receipt:", error);
-    } finally {
-      setLoaded(true);
-    }
-  }, [orderId]);
-
-  async function chooseDeliveryMethod(
-    deliveryMethod: "BOLT" | "STORE_PICKUP",
-  ) {
-    if (!order || savingDelivery) return;
-
-    if (!order.payment_reference) {
-      setDeliveryError(
-        "We couldn't verify the payment reference for this order. Please contact us on WhatsApp for help.",
-      );
-      return;
-    }
-
-    try {
-      setSavingDelivery(true);
-      setDeliveryError("");
-
-      const response = await fetch(
-        `${API_URL}/orders/set-delivery-method/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            order_id: order.id,
-            reference: order.payment_reference,
-            delivery_method: deliveryMethod,
-          }),
-        },
-      );
-
-      const data: DeliveryResponse = await response.json();
-
-      if (!response.ok || !data.order) {
-        throw new Error(
-          getMessage(
-            data,
-            "We couldn't save your delivery preference. Please try again.",
-          ),
-        );
-      }
-
-      if (data.order.payment_status !== "PAID") {
-        throw new Error(
-          "We couldn't confirm the paid order. Please contact us before proceeding.",
-        );
-      }
-
-      setOrder(data.order);
-
-      sessionStorage.setItem(
-        VERIFIED_ORDER_KEY,
-        JSON.stringify(data.order),
-      );
-    } catch (error) {
-      console.error("Saving delivery preference failed:", error);
-
-      setDeliveryError(
-        error instanceof Error
-          ? error.message
-          : "Unable to save your preference. Please try again.",
-      );
-    } finally {
-      setSavingDelivery(false);
-    }
-  }
-
-  function continueShopping() {
-    sessionStorage.removeItem(VERIFIED_ORDER_KEY);
-    router.push("/");
-  }
-
-  const deliveryMethod = order?.delivery_method;
-
+function BoltBrand({ size = 34 }: { size?: number }) {
   return (
-    <main className="min-h-screen bg-[#f1edff] px-4 py-8 text-black sm:px-6 sm:py-12">
-      <div className="mx-auto max-w-2xl">
-        <section className="overflow-hidden rounded-[2rem] bg-white shadow-sm">
-          <div className="bg-gradient-to-br from-[#7c5cff] to-[#a28cff] px-6 py-9 text-center text-white sm:px-10">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white text-4xl font-black text-[#7c5cff]">
-              ✓
-            </div>
-
-            <p className="mt-6 text-xs font-bold uppercase tracking-[0.2em] text-white/80">
-              Payment confirmation
-            </p>
-
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-              Thank you for shopping with us!
-            </h1>
-
-            <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-white/90">
-              Your payment confirmation and receipt are shown below
-              when your verified order is available.
-            </p>
-          </div>
-
-          <div className="space-y-6 p-5 sm:p-8">
-            {!loaded ? (
-              <p className="text-center text-sm text-black/60">
-                Loading your order receipt...
-              </p>
-            ) : order ? (
-              <>
-                <section className="rounded-2xl border border-black/10 p-4 sm:p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold uppercase tracking-wider text-black/50">
-                        Payment reference
-                      </p>
-
-                      <p className="mt-1 break-all text-sm font-bold">
-                        {order.payment_reference || order.id}
-                      </p>
-
-                      <p className="mt-2 break-all text-xs text-black/45">
-                        Order ID: {order.id}
-                      </p>
-                    </div>
-
-                    <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
-                      PAYMENT VERIFIED
-                    </span>
-                  </div>
-
-                  <div className="mt-5 border-t border-black/10 pt-5">
-                    <h2 className="text-lg font-black">Your receipt</h2>
-
-                    {order.items?.length ? (
-                      <div className="mt-3 divide-y divide-black/10">
-                        {order.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-start justify-between gap-4 py-4 first:pt-2 last:pb-2"
-                          >
-                            <div className="min-w-0">
-                              <p className="break-words font-bold">
-                                {item.product_name}
-                              </p>
-
-                              <p className="mt-1 text-sm text-black/55">
-                                Quantity: {item.quantity}
-                                {item.selected_size
-                                  ? ` · Size: ${item.selected_size}`
-                                  : ""}
-                              </p>
-
-                              <p className="mt-1 text-sm text-black/55">
-                                {formatNaira(item.unit_price)} each
-                              </p>
-                            </div>
-
-                            <p className="shrink-0 text-right text-sm font-bold">
-                              {formatNaira(item.line_total)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="mt-4 rounded-xl bg-[#fff7f1] p-4">
-                        <p className="text-sm font-bold">
-                          Your payment is confirmed.
-                        </p>
-
-                        <p className="mt-2 text-sm leading-6 text-black/65">
-                          The original item details for this older order
-                          were not saved separately when the order was
-                          first created. To avoid showing incorrect
-                          quantities or prices, we can't reconstruct
-                          its itemised receipt from the current cart.
-                          Please contact Perfectwears if you need help
-                          with the original purchase details.
-                        </p>
-
-                        <a
-                          href={WHATSAPP_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-3 inline-flex font-bold text-[#6848e8] underline underline-offset-4"
-                        >
-                          Contact us on WhatsApp
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-5 flex items-center justify-between gap-3 border-t border-black/10 pt-4">
-                    <span className="font-bold">Total paid</span>
-
-                    <span className="text-xl font-black text-[#7c5cff]">
-                      {formatNaira(order.total_amount)}
-                    </span>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-black/55">
-                    <span className="rounded-full bg-green-50 px-3 py-1.5 font-bold text-green-700">
-                      Paystack verified
-                    </span>
-
-                    <span className="rounded-full bg-[#f1edff] px-3 py-1.5 font-bold text-[#6848e8]">
-                      Order received
-                    </span>
-                  </div>
-                </section>
-
-                <section className="rounded-2xl bg-[#fff7f1] p-5 sm:p-6">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl" aria-hidden="true">
-                      📦
-                    </span>
-
-                    <div>
-                      <h2 className="text-xl font-black">
-                        How would you like to receive your order?
-                      </h2>
-
-                      <p className="mt-2 text-sm leading-6 text-black/65">
-                        Choose an option below. Your selection will be
-                        saved to your order after payment.
-                      </p>
-                    </div>
-                  </div>
-
-                  {deliveryMethod === null ? (
-                    <>
-                      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          disabled={savingDelivery}
-                          onClick={() => chooseDeliveryMethod("BOLT")}
-                          className="flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 border-[#7c5cff]/20 bg-white p-4 text-center transition hover:border-[#7c5cff] hover:bg-[#f8f5ff] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <span className="text-2xl" aria-hidden="true">
-                            🚗
-                          </span>
-
-                          <span className="mt-2 font-black">
-                            Bolt delivery
-                          </span>
-
-                          <span className="mt-1 text-xs text-black/55">
-                            Coordinate your ride with us
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={savingDelivery}
-                          onClick={() => chooseDeliveryMethod("STORE_PICKUP")}
-                          className="flex min-h-24 flex-col items-center justify-center rounded-2xl border-2 border-[#7c5cff]/20 bg-white p-4 text-center transition hover:border-[#7c5cff] hover:bg-[#f8f5ff] disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <span className="text-2xl" aria-hidden="true">
-                            📍
-                          </span>
-
-                          <span className="mt-2 font-black">
-                            Store Pickup
-                          </span>
-
-                          <span className="mt-1 text-xs text-black/55">
-                            Collect from our store
-                          </span>
-                        </button>
-                      </div>
-
-                      {savingDelivery && (
-                        <p
-                          role="status"
-                          className="mt-4 text-center text-sm font-semibold text-[#6848e8]"
-                        >
-                          Saving your choice...
-                        </p>
-                      )}
-                    </>
-                  ) : deliveryMethod === "STORE_PICKUP" ? (
-                    <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4 sm:p-5">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl" aria-hidden="true">
-                          📍
-                        </span>
-
-                        <div>
-                          <h3 className="font-black">
-                            Store Pickup selected
-                          </h3>
-
-                          <p className="mt-1 text-sm text-black/55">
-                            Please contact us to confirm when your
-                            order will be ready before setting out.
-                          </p>
-                        </div>
-                      </div>
-
-                      <p className="mt-5 text-xs font-bold uppercase tracking-wider text-black/50">
-                        Pickup address
-                      </p>
-
-                      <p className="mt-2 text-sm font-semibold leading-6">
-                        {PICKUP_ADDRESS}
-                      </p>
-
-                      <a
-                        href={MAPS_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-[#7c5cff] px-5 py-3 text-center text-sm font-black text-white transition hover:bg-[#6848e8]"
-                      >
-                        📍 Open Google Maps
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4 sm:p-5">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl" aria-hidden="true">
-                          🚗
-                        </span>
-
-                        <div>
-                          <h3 className="font-black">
-                            Bolt delivery selected
-                          </h3>
-
-                          <p className="mt-1 text-sm leading-6 text-black/60">
-                            Open Bolt on your phone if supported, then
-                            contact Perfectwears to coordinate delivery.
-                            Selecting this option does not automatically
-                            book a driver.
-                          </p>
-                        </div>
-                      </div>
-
-                      <a
-                        href={BOLT_APP_URL}
-                        className="mt-4 flex min-h-12 items-center justify-center rounded-xl bg-[#7c5cff] px-5 py-3 text-center text-sm font-black text-white transition hover:bg-[#6848e8]"
-                      >
-                        🚗 Try opening the Bolt app
-                      </a>
-                    </div>
-                  )}
-
-                  {deliveryError && (
-                    <div
-                      role="alert"
-                      className="mt-4 rounded-xl bg-red-50 p-4 text-sm leading-6 text-red-700"
-                    >
-                      {deliveryError}
-                    </div>
-                  )}
-
-                  <div className="mt-5 border-t border-black/10 pt-5">
-                    <h3 className="font-black">Need help with your order?</h3>
-
-                    <p className="mt-1 text-sm leading-6 text-black/65">
-                      Message us on WhatsApp if you need help with
-                      delivery, pickup, or your receipt.
-                    </p>
-
-                    <a
-                      href={WHATSAPP_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Contact Perfectwears on WhatsApp"
-                      className="mt-4 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-3 text-sm font-black text-white transition hover:brightness-95"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        aria-hidden="true"
-                        className="h-5 w-5"
-                      >
-                        <path d="M20.52 3.48A11.78 11.78 0 0 0 12.12 0C5.55 0 .2 5.35.2 11.92c0 2.1.55 4.15 1.6 5.96L.1 24l6.27-1.65a11.9 11.9 0 0 0 5.74 1.46h.01c6.57 0 11.92-5.35 11.92-11.92 0-3.18-1.24-6.17-3.52-8.41ZM12.12 21.8a9.88 9.88 0 0 1-5.04-1.38l-.36-.21-3.72.98.99-3.63-.24-.37a9.85 9.85 0 0 1-1.51-5.27c0-5.45 4.44-9.89 9.9-9.89 2.64 0 5.12 1.03 6.99 2.9a9.83 9.83 0 0 1 2.9 6.99c0 5.46-4.44 9.88-9.91 9.88Zm5.43-7.4c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.47-.89-.8-1.49-1.78-1.66-2.08-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.2 5.08 4.49.71.31 1.27.5 1.7.64.72.23 1.37.2 1.88.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35Z" />
-                      </svg>
-
-                      WhatsApp Customer Care
-                    </a>
-                  </div>
-                </section>
-              </>
-            ) : (
-              <section className="rounded-2xl bg-[#fff7f1] p-5">
-                <h2 className="text-lg font-black">
-                  We couldn't load this receipt
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-black/65">
-                  This page needs the verified order details from the
-                  payment confirmation session. If you have completed
-                  payment but cannot see your receipt, contact
-                  Perfectwears before attempting another payment.
-                </p>
-
-                {orderId && (
-                  <p className="mt-3 break-all text-xs text-black/60">
-                    Order ID: {orderId}
-                  </p>
-                )}
-
-                <a
-                  href={WHATSAPP_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-flex font-bold text-[#6848e8] underline underline-offset-4"
-                >
-                  Contact us on WhatsApp
-                </a>
-              </section>
-            )}
-
-            <section className="text-center">
-              <p className="text-sm font-bold">Stay connected with us</p>
-
-              <div className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm font-semibold">
-                <a
-                  href={INSTAGRAM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#6848e8] hover:underline"
-                >
-                  Instagram
-                </a>
-
-                <a
-                  href={TIKTOK_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#6848e8] hover:underline"
-                >
-                  TikTok
-                </a>
-
-                <a
-                  href={`mailto:${SUPPORT_EMAIL}`}
-                  className="text-[#6848e8] hover:underline"
-                >
-                  Email us
-                </a>
-              </div>
-            </section>
-
-            <button
-              type="button"
-              onClick={continueShopping}
-              className="flex min-h-14 w-full items-center justify-center rounded-xl bg-[#7c5cff] px-6 py-4 text-sm font-black uppercase tracking-wider text-white transition hover:bg-[#6848e8]"
-            >
-              Continue Shopping
-            </button>
-
-            <p className="text-center text-xs leading-5 text-black/45">
-              Your paid order remains recorded by Perfectwears.
-              Continuing shopping starts a new cart.
-            </p>
-          </div>
-        </section>
-      </div>
-    </main>
+    <svg
+      width={size * 1.65}
+      height={size}
+      viewBox="0 0 66 40"
+      role="img"
+      aria-label="Bolt ride"
+      fill="none"
+    >
+      <path
+        d="M7 24.5 11.5 14a5 5 0 0 1 4.6-3h26.1a6 6 0 0 1 4.5 2.1l7.1 8.2 5.2 1.8a3.8 3.8 0 0 1 2.5 3.6v4.1H5.5v-3.2a3.3 3.3 0 0 1 1.5-3.1Z"
+        fill="#101820"
+      />
+      <path d="m15.3 14.5-3.6 8.2h17.1v-8.2H15.3Z" fill="#D8F7E6" />
+      <path
+        d="M32.1 14.5v8.2h17.2l-6.4-7.4a2.8 2.8 0 0 0-2.1-.8h-8.7Z"
+        fill="#D8F7E6"
+      />
+      <path
+        d="M3 28.8h60"
+        stroke="#101820"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <circle cx="17" cy="30.5" r="5.8" fill="#101820" />
+      <circle cx="17" cy="30.5" r="2.5" fill="#FFFFFF" />
+      <circle cx="49" cy="30.5" r="5.8" fill="#101820" />
+      <circle cx="49" cy="30.5" r="2.5" fill="#FFFFFF" />
+      <path
+        d="m36.5 1.8-8.2 10.6h5.9l-2 7.2 10.1-12h-6.1l.3-5.8Z"
+        fill="#079E55"
+      />
+    </svg>
   );
 }
 
-function SuccessLoading() {
+function GoogleMapsBrand({ size = 42 }: { size?: number }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f1edff] px-5 text-black">
-      <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-        <p className="font-bold">Loading your order confirmation...</p>
-      </div>
-    </main>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 48 48"
+      role="img"
+      aria-label="Google Maps"
+    >
+      <path
+        fill="#34A853"
+        d="M24 4C14.6 4 8 10.9 8 19.4c0 10.6 12.9 23 15.1 25.1a1.3 1.3 0 0 0 1.8 0C27.1 42 40 30 40 19.4 40 10.9 33.4 4 24 4Z"
+      />
+      <path
+        fill="#4285F4"
+        d="M24 4C17.1 4 11.5 7.6 9.1 13l10.4 4.3L29 7.1A17 17 0 0 0 24 4Z"
+      />
+      <path
+        fill="#FBBC04"
+        d="M9.1 13A15.5 15.5 0 0 0 8 19.4c0 3.7 2 7.9 4.5 11.8l9.1-9.1-2.1-4.8L9.1 13Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M29 7.1 19.5 17l5.1 5.1 10.2-10.2A15.5 15.5 0 0 0 29 7.1Z"
+      />
+      <circle cx="24" cy="19" r="6.2" fill="#fff" />
+      <circle cx="24" cy="19" r="3.2" fill="#4285F4" />
+    </svg>
   );
 }
 
 export default function PaymentSuccessPage() {
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+
+      if (!stored) {
+        setError(true);
+        return;
+      }
+
+      const parsed = JSON.parse(stored);
+      const verified = parsed?.order ?? parsed;
+
+      if (
+        !verified?.id ||
+        String(verified.payment_status).toUpperCase() !== "PAID"
+      ) {
+        setError(true);
+        return;
+      }
+
+      setOrder(verified);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  function openBolt() {
+    window.location.href = BOLT_APP_URL;
+  }
+
+  function openStoreMaps() {
+    window.location.href = MAPS_URL;
+  }
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-emerald-100 border-t-emerald-600" />
+          <p className="font-semibold text-slate-700">
+            Loading your order…
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <main className="min-h-screen bg-white px-5 py-10 text-slate-800">
+        <div className="mx-auto max-w-xl text-center">
+          <Link
+            href="/"
+            aria-label="Perfectwears home"
+            className="mb-8 inline-flex"
+          >
+            <span className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-white shadow-sm">
+              <img
+                src="/perfectwears-logo.jpg"
+                alt="Perfectwears"
+                className="h-full w-full rounded-full object-cover"
+              />
+            </span>
+          </Link>
+
+          <h1 className="text-3xl font-extrabold">
+            Let&apos;s find your order
+          </h1>
+
+          <p className="mt-3 leading-7 text-slate-500">
+            We couldn&apos;t load your verified order details in this browser.
+            If your payment went through, please contact us so we can help
+            confirm your order.
+          </p>
+
+          <a
+            href={WHATSAPP_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#16a34a] px-6 py-3 font-bold text-white"
+          >
+            <Icon name="whatsapp" />
+            Contact customer care
+          </a>
+
+          <div>
+            <Link
+              href="/"
+              className="mt-5 inline-block font-semibold text-slate-600 underline"
+            >
+              Return to store
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <Suspense fallback={<SuccessLoading />}>
-      <PaymentSuccessContent />
-    </Suspense>
+    <main className="min-h-screen bg-white text-[#172033]">
+      <div className="mx-auto max-w-5xl px-4 pb-8 sm:px-6">
+        <header className="flex flex-col items-center border-b border-slate-100 py-5">
+          <Link href="/" aria-label="Perfectwears home">
+            <span className="flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white shadow-sm">
+              <img
+                src="/perfectwears-logo.jpg"
+                alt="Perfectwears logo"
+                className="h-full w-full rounded-full object-cover"
+              />
+            </span>
+          </Link>
+        </header>
+
+        <section className="py-8 text-center sm:py-10">
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            Thank you for shopping with us!
+          </h1>
+        </section>
+
+        <section className="rounded-2xl bg-[#f0faf5] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#d9f7e7] text-[#087f5b]">
+              <Icon name="receipt" size={28} />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-slate-500">Payment reference</p>
+              <p className="mt-1 break-all font-bold">
+                {order.payment_reference || "Payment confirmed"}
+              </p>
+              <p className="mt-2 break-all text-sm text-slate-500">
+                Order ID: {order.id}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* The product/order summary remains intentionally hidden for launch. */}
+
+        <section className="mt-4 rounded-2xl border border-[#dcefe4] bg-[#f0faf5] p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-slate-500">Total paid</p>
+              <p className="mt-1 text-3xl font-extrabold tracking-tight text-[#172033]">
+                {naira(order.total_amount)}
+              </p>
+            </div>
+
+            <span className="inline-flex items-center gap-2 rounded-full bg-[#d6f8e5] px-3 py-2 text-xs font-extrabold text-[#07804b]">
+              <Icon name="check" size={16} />
+              Payment received
+            </span>
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <div className="mb-5 flex items-center gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#e9f6ff] text-[#253a56]">
+              <Icon name="truck" size={29} />
+            </span>
+
+            <div>
+              <h2 className="text-xl font-extrabold">
+                How would you like to receive your order?
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Choose an option below.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={openBolt}
+              className="min-h-[140px] rounded-2xl bg-[#f1fbf6] p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            >
+              <span className="flex items-center gap-4">
+                <span className="flex h-[66px] w-[66px] shrink-0 items-center justify-center rounded-2xl bg-[#2bdc83]">
+                  <BoltBrand size={30} />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-extrabold">
+                    Bolt delivery
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-slate-500">
+                    Arrange a Bolt ride from our store to your location.
+                  </span>
+                  <span className="mt-3 flex items-center gap-1 text-sm font-bold text-[#087f5b]">
+                    Open Bolt
+                    <Icon name="arrow" size={17} />
+                  </span>
+                </span>
+              </span>
+
+              <a
+                href={BOLT_DOWNLOAD_URL}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(event) => event.stopPropagation()}
+                className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-slate-600 underline underline-offset-2"
+              >
+                Don&apos;t have Bolt? Get the app
+                <Icon name="arrow" size={15} />
+              </a>
+            </button>
+
+            <button
+              type="button"
+              onClick={openStoreMaps}
+              className="min-h-[140px] rounded-2xl bg-[#f6f8ff] p-5 text-left transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            >
+              <span className="flex items-center gap-4">
+                <span className="flex h-[66px] w-[66px] shrink-0 items-center justify-center rounded-2xl bg-white">
+                  <GoogleMapsBrand size={40} />
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-extrabold">
+                    Store pickup
+                  </span>
+                  <span className="mt-1 block text-sm leading-6 text-slate-500">
+                    Collect your order directly from our store.
+                  </span>
+                  <span className="mt-3 flex items-center gap-1 text-sm font-bold text-[#263b60]">
+                    Get directions on Google Maps
+                    <Icon name="arrow" size={17} />
+                  </span>
+                </span>
+              </span>
+            </button>
+          </div>
+        </section>
+
+        <section className="mt-7 rounded-2xl bg-[#f3f6f9] p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#e1effa] text-[#253a56]">
+              <Icon name="whatsapp" size={27} />
+            </span>
+
+            <div>
+              <h2 className="font-extrabold">Need help with your order?</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Message us on WhatsApp if you need help with delivery, pickup
+                or your order.
+              </p>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#079e55] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#078347]"
+              >
+                <Icon name="whatsapp" size={19} />
+                WhatsApp Customer Care
+                <Icon name="arrow" size={16} />
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <footer className="mt-8">
+          <p className="font-bold">Stay connected with us</p>
+
+          <div className="mt-4 flex gap-5">
+            <a
+              href={INSTAGRAM_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="flex flex-col items-center gap-2 text-xs text-slate-500 hover:text-slate-900"
+              aria-label="Instagram"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full border border-pink-100 bg-white">
+                <Icon name="instagram" size={24} />
+              </span>
+              Instagram
+            </a>
+
+            <a
+              href={TIKTOK_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="flex flex-col items-center gap-2 text-xs text-slate-500 hover:text-slate-900"
+              aria-label="TikTok"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#101010] text-white">
+                <Icon name="tiktok" size={23} />
+              </span>
+              TikTok
+            </a>
+
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="flex flex-col items-center gap-2 text-xs text-slate-500 hover:text-slate-900"
+              aria-label="Email us"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e8f3ff] text-[#2583e9]">
+                <Icon name="mail" size={23} />
+              </span>
+              Email us
+            </a>
+          </div>
+
+          <Link
+            href="/"
+            onClick={() => sessionStorage.removeItem(STORAGE_KEY)}
+            className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-[#151a23] px-5 py-4 font-bold text-white transition hover:bg-[#252c38]"
+          >
+            Continue Shopping
+            <Icon name="arrow" size={19} />
+          </Link>
+
+          <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+            Your paid order remains recorded by Perfectwears. Continuing
+            shopping starts a new shopping session.
+          </p>
+
+          <div className="mt-8 flex items-center gap-4">
+            <div className="h-px flex-1 bg-slate-200" />
+            <Link
+              href="/"
+              aria-label="Perfectwears home"
+              className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
+            >
+              <img
+                src="/perfectwears-logo.jpg"
+                alt=""
+                className="h-full w-full rounded-full object-cover"
+              />
+            </Link>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <p className="mt-4 text-center text-xs text-slate-400">
+            © {new Date().getFullYear()} Perfectwears. All rights reserved.
+          </p>
+        </footer>
+      </div>
+    </main>
   );
 }

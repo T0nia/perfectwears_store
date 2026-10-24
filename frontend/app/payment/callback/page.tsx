@@ -56,12 +56,16 @@ function PaymentVerification() {
         searchParams.get("reference") ||
         searchParams.get("trxref");
 
-      const orderId = localStorage.getItem(PENDING_ORDER_KEY);
+      // Recover the order ID from the URL if browser storage is missing.
+      const orderId =
+        searchParams.get("order") ||
+        searchParams.get("order_id") ||
+        localStorage.getItem(PENDING_ORDER_KEY);
 
       if (!reference || !orderId) {
         setHasError(true);
         setMessage(
-          "We could not find your payment details. If you were charged, please contact Perfectwears and provide your Paystack payment reference.",
+          "The payment reference or order ID is missing. Your payment has not been changed by this page. Please contact Perfectwears if you need help recovering the order.",
         );
         return;
       }
@@ -87,16 +91,16 @@ function PaymentVerification() {
           throw new Error(
             data.error ||
               data.detail ||
-              "Payment verification failed.",
+              "The backend could not verify this payment. No new payment is required.",
           );
         }
 
         if (
           data.payment_status !== "PAID" ||
-          data.order?.payment_status !== "PAID"
+          data.order?.payment_status?.toUpperCase() !== "PAID"
         ) {
           throw new Error(
-            "Your payment has not been confirmed. Please do not pay again. If you were charged, contact Perfectwears.",
+            "The backend did not return a confirmed paid order. Do not pay again. Please check the order in Django Admin.",
           );
         }
 
@@ -115,7 +119,7 @@ function PaymentVerification() {
         window.dispatchEvent(new Event("cart-updated"));
 
         router.replace(
-          `/payment/success?order=${encodeURIComponent(orderId)}`,
+          `/payment/success?order=${encodeURIComponent(data.order.id)}`,
         );
       } catch (err) {
         if (cancelled) {
@@ -127,7 +131,7 @@ function PaymentVerification() {
         setMessage(
           err instanceof Error
             ? err.message
-            : "We could not verify your payment. If you were charged, please contact Perfectwears.",
+            : "We could not verify this payment. Do not pay again; check the existing order in Django Admin.",
         );
       }
     }
@@ -152,14 +156,14 @@ function PaymentVerification() {
 
         <h1 className="mt-6 text-2xl font-black">
           {hasError
-            ? "Payment not confirmed"
+            ? "Payment verification needs attention"
             : "Verifying your payment"}
         </h1>
 
         <p className="mt-3 text-sm leading-6 text-black/60">
           {hasError
             ? message
-            : "Please wait while we securely confirm your payment with Paystack. Do not close this page."}
+            : "Please wait while we securely confirm your existing payment with Paystack."}
         </p>
 
         {!hasError && (
