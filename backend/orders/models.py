@@ -1,3 +1,5 @@
+
+import secrets
 import uuid
 
 from django.contrib.auth.models import User
@@ -5,6 +7,11 @@ from django.db import models
 
 from cart.models import Cart
 from products.models import Product
+
+
+def generate_order_recovery_token():
+    """Generate an unpredictable token for recovering an order."""
+    return secrets.token_urlsafe(32)
 
 
 class Order(models.Model):
@@ -28,6 +35,12 @@ class Order(models.Model):
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
+        editable=False,
+    )
+
+    recovery_token = models.CharField(
+        max_length=64,
+        default=generate_order_recovery_token,
         editable=False,
     )
 

@@ -69,7 +69,59 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [cartCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
+
+useEffect(() => {
+  let cancelled = false;
+
+  async function updateCartCount() {
+    try {
+      const cartId = localStorage.getItem("perfectwears_cart_id");
+
+      if (!cartId) {
+        if (!cancelled) setCartCount(0);
+        return;
+      }
+
+      const response = await fetch(
+        `https://perfectwears-backend.onrender.com/api/cart/${cartId}/`,
+        { cache: "no-store" },
+      );
+
+      if (!response.ok) {
+        if (!cancelled) setCartCount(0);
+        return;
+      }
+
+      const cart = await response.json();
+
+      const total = Array.isArray(cart.items)
+        ? cart.items.reduce(
+            (sum: number, item: { quantity?: number }) =>
+              sum + (Number(item.quantity) || 0),
+            0,
+          )
+        : 0;
+
+      if (!cancelled) setCartCount(total);
+    } catch (error) {
+      console.error("Unable to update cart indicator:", error);
+    }
+  }
+
+  updateCartCount();
+
+  window.addEventListener("cart-updated", updateCartCount);
+  window.addEventListener("focus", updateCartCount);
+  window.addEventListener("storage", updateCartCount);
+
+  return () => {
+    cancelled = true;
+    window.removeEventListener("cart-updated", updateCartCount);
+    window.removeEventListener("focus", updateCartCount);
+    window.removeEventListener("storage", updateCartCount);
+  };
+}, []);
 
   useEffect(() => {
     async function loadProducts() {

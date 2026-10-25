@@ -1,3 +1,4 @@
+
 from django.contrib import admin
 
 from .models import Order, OrderItem
@@ -37,8 +38,6 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "customer_name",
-        "customer_email",
-        "customer_phone",
         "total_amount",
         "payment_status",
         "order_status",
@@ -64,6 +63,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         "id",
+        "recovery_token",
         "cart",
         "user",
         "customer_name",
@@ -77,6 +77,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     fields = (
         "id",
+        "recovery_token",
         "cart",
         "user",
         "customer_name",

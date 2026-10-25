@@ -5,6 +5,7 @@ from .views import (
     create_order,
     initialize_payment,
     verify_payment,
+    recover_order,
     set_delivery_method,
 )
 
@@ -20,6 +21,7 @@ urlpatterns = [
         verify_payment,
         name="verify-payment",
     ),
+    path("recover/", recover_order, name="recover-order"),
     path(
         "set-delivery-method/",
         set_delivery_method,

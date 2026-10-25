@@ -26,6 +26,7 @@ type Cart = {
 type OrderResponse = {
   id?: string;
   order_id?: string;
+  recovery_token?: string;
   error?: string;
   detail?: string;
 };
@@ -40,6 +41,11 @@ type PaymentResponse = {
 const API_URL = "https://perfectwears-backend.onrender.com/api";
 const CART_STORAGE_KEY = "perfectwears_cart_id";
 const PENDING_ORDER_KEY = "perfectwears_pending_order_id";
+const CURRENT_RECOVERY_KEY = "perfectwears_current_order_recovery";
+
+function recoveryStorageKey(orderId: string) {
+  return `perfectwears_order_recovery_${orderId}`;
+}
 
 function formatNaira(amount: number) {
   return `₦${amount.toLocaleString("en-NG", {
@@ -127,7 +133,9 @@ export default function CheckoutPage() {
           return;
         }
 
-        if (!cancelled) setCart(data);
+        if (!cancelled) {
+          setCart(data);
+        }
       } catch (err) {
         console.error("Checkout cart request failed:", err);
 
@@ -139,7 +147,9 @@ export default function CheckoutPage() {
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
@@ -185,10 +195,28 @@ export default function CheckoutPage() {
       }
 
       const orderId = orderData.id || orderData.order_id;
+      const recoveryToken = orderData.recovery_token;
 
-      if (!orderId) {
-        throw new Error("The server did not return an order ID.");
+      if (!orderId || !recoveryToken) {
+        throw new Error(
+          "The server did not return the order recovery details. Please contact customer care before trying checkout again.",
+        );
       }
+
+      // Save recovery details immediately, before contacting Paystack.
+      // Keep separate credentials for each order so one order cannot
+      // overwrite the recovery details for another.
+      const recoveryDetails = JSON.stringify({
+        order_id: orderId,
+        recovery_token: recoveryToken,
+      });
+
+      localStorage.setItem(
+        recoveryStorageKey(orderId),
+        recoveryDetails,
+      );
+      localStorage.setItem(CURRENT_RECOVERY_KEY, recoveryDetails);
+      localStorage.setItem(PENDING_ORDER_KEY, orderId);
 
       const paymentResponse = await fetch(
         `${API_URL}/orders/initialize-payment/`,
@@ -197,6 +225,7 @@ export default function CheckoutPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             order_id: orderId,
+            recovery_token: recoveryToken,
             callback_url: `${window.location.origin}/payment/callback`,
           }),
         },
@@ -206,26 +235,50 @@ export default function CheckoutPage() {
 
       if (!paymentResponse.ok) {
         throw new Error(
-          getMessage(paymentData, "Unable to initialize payment."),
+          getMessage(
+            paymentData,
+            "Unable to initialize payment. Your order recovery details have been saved. Please contact customer care before retrying if you are unsure whether payment started.",
+          ),
         );
       }
 
       if (!paymentData.authorization_url) {
-        throw new Error("Paystack did not return a payment link.");
+        throw new Error(
+          "Paystack did not return a payment link. Your order recovery details have been saved. Please contact customer care before retrying.",
+        );
       }
 
-      localStorage.setItem(
-        PENDING_ORDER_KEY,
-        paymentData.order_id || orderId,
-      );
+      const paymentOrderId = paymentData.order_id || orderId;
 
-      window.location.href = paymentData.authorization_url;
+      // Keep the original recovery token attached to the returned order ID.
+      if (paymentOrderId !== orderId) {
+        localStorage.setItem(
+          recoveryStorageKey(paymentOrderId),
+          JSON.stringify({
+            order_id: paymentOrderId,
+            recovery_token: recoveryToken,
+          }),
+        );
+        localStorage.setItem(
+          PENDING_ORDER_KEY,
+          paymentOrderId,
+        );
+        localStorage.setItem(
+          CURRENT_RECOVERY_KEY,
+          JSON.stringify({
+            order_id: paymentOrderId,
+            recovery_token: recoveryToken,
+          }),
+        );
+      }
+
+      window.location.assign(paymentData.authorization_url);
     } catch (err) {
       console.error("Checkout submission failed:", err);
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong. Please try again.",
+          : "Something went wrong. Please check your order before retrying.",
       );
       setSubmitting(false);
     }

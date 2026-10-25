@@ -15,9 +15,6 @@ type OrderItem = {
 
 type VerifiedOrder = {
   id: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
   total_amount: string | number;
   payment_reference: string | null;
   payment_status: string;
@@ -35,11 +32,21 @@ type VerificationResponse = {
   order?: VerifiedOrder;
 };
 
+type RecoveryCredentials = {
+  order_id: string;
+  recovery_token: string;
+};
+
 const API_URL = "https://perfectwears-backend.onrender.com/api";
 
 const CART_STORAGE_KEY = "perfectwears_cart_id";
 const PENDING_ORDER_KEY = "perfectwears_pending_order_id";
 const VERIFIED_ORDER_KEY = "perfectwears_verified_order";
+const CURRENT_RECOVERY_KEY = "perfectwears_current_order_recovery";
+
+function recoveryStorageKey(orderId: string) {
+  return `perfectwears_order_recovery_${orderId}`;
+}
 
 function PaymentVerification() {
   const router = useRouter();
@@ -56,7 +63,6 @@ function PaymentVerification() {
         searchParams.get("reference") ||
         searchParams.get("trxref");
 
-      // Recover the order ID from the URL if browser storage is missing.
       const orderId =
         searchParams.get("order") ||
         searchParams.get("order_id") ||
@@ -65,7 +71,45 @@ function PaymentVerification() {
       if (!reference || !orderId) {
         setHasError(true);
         setMessage(
-          "The payment reference or order ID is missing. Your payment has not been changed by this page. Please contact Perfectwears if you need help recovering the order.",
+          "The payment reference or order ID is missing. Do not pay again. Your existing payment may still be recoverable. Please contact Perfectwears for help.",
+        );
+        return;
+      }
+
+      let credentials: RecoveryCredentials | null = null;
+
+      try {
+        const savedCredentials =
+          localStorage.getItem(recoveryStorageKey(orderId)) ||
+          localStorage.getItem(CURRENT_RECOVERY_KEY);
+
+        if (savedCredentials) {
+          const parsed: unknown = JSON.parse(savedCredentials);
+
+          if (
+            typeof parsed === "object" &&
+            parsed !== null &&
+            "order_id" in parsed &&
+            "recovery_token" in parsed &&
+            typeof parsed.order_id === "string" &&
+            typeof parsed.recovery_token === "string" &&
+            parsed.order_id === orderId &&
+            parsed.recovery_token.length > 0
+          ) {
+            credentials = {
+              order_id: parsed.order_id,
+              recovery_token: parsed.recovery_token,
+            };
+          }
+        }
+      } catch (error) {
+        console.error("Could not read saved order recovery credentials:", error);
+      }
+
+      if (!credentials) {
+        setHasError(true);
+        setMessage(
+          "We could not find the secure recovery details for this order in this browser. Do not pay again. Please contact Perfectwears so the existing payment can be checked.",
         );
         return;
       }
@@ -81,6 +125,7 @@ function PaymentVerification() {
             body: JSON.stringify({
               order_id: orderId,
               reference,
+              recovery_token: credentials.recovery_token,
             }),
           },
         );
@@ -91,16 +136,16 @@ function PaymentVerification() {
           throw new Error(
             data.error ||
               data.detail ||
-              "The backend could not verify this payment. No new payment is required.",
+              "We could not verify the existing payment. Do not pay again; please contact Perfectwears for help.",
           );
         }
 
         if (
-          data.payment_status !== "PAID" ||
+          data.payment_status?.toUpperCase() !== "PAID" ||
           data.order?.payment_status?.toUpperCase() !== "PAID"
         ) {
           throw new Error(
-            "The backend did not return a confirmed paid order. Do not pay again. Please check the order in Django Admin.",
+            "Paystack has not yet been confirmed as paid by the backend. Do not pay again. Your existing order can be checked and recovered.",
           );
         }
 
@@ -113,6 +158,18 @@ function PaymentVerification() {
           JSON.stringify(data.order),
         );
 
+        // Keep the order's recovery credentials so the customer can
+        // return to the existing order if the next step is interrupted.
+        localStorage.setItem(
+          recoveryStorageKey(orderId),
+          JSON.stringify(credentials),
+        );
+        localStorage.setItem(
+          CURRENT_RECOVERY_KEY,
+          JSON.stringify(credentials),
+        );
+
+        // Clear the cart only after the backend confirms payment.
         localStorage.removeItem(CART_STORAGE_KEY);
         localStorage.removeItem(PENDING_ORDER_KEY);
 
@@ -131,7 +188,7 @@ function PaymentVerification() {
         setMessage(
           err instanceof Error
             ? err.message
-            : "We could not verify this payment. Do not pay again; check the existing order in Django Admin.",
+            : "We could not verify this payment. Do not pay again; contact Perfectwears to check the existing order.",
         );
       }
     }

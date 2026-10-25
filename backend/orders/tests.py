@@ -58,6 +58,12 @@ class OrderFlowTests(TestCase):
         order.payment_reference = reference
         order.save(update_fields=["payment_reference"])
 
+    def order_credentials(self, order):
+        return {
+            "order_id": str(order.id),
+            "recovery_token": order.recovery_token,
+        }
+
     def mocked_verification_response(
         self,
         reference,
@@ -79,9 +85,7 @@ class OrderFlowTests(TestCase):
                 "currency": currency,
                 "status": status,
                 "email": email,
-                "metadata": {
-                    "order_id": str(order_id),
-                },
+                "metadata": {"order_id": str(order_id)},
             },
         }
         return mock_response
@@ -99,24 +103,19 @@ class OrderFlowTests(TestCase):
         item = OrderItem.objects.get(order=order)
 
         self.assertEqual(order.customer_name, "Test Customer")
-        self.assertEqual(
-            order.customer_email,
-            "customer@example.com",
-        )
+        self.assertEqual(order.customer_email, "customer@example.com")
         self.assertEqual(order.total_amount, Decimal("50000.00"))
         self.assertEqual(order.payment_status, "PENDING")
-
         self.assertEqual(item.product_name, "Test Black Set")
         self.assertEqual(item.unit_price, Decimal("25000.00"))
         self.assertEqual(item.quantity, 2)
         self.assertEqual(item.selected_size, "L")
-
-        self.assertEqual(len(response.data["items"]), 1)
+        self.assertEqual(response.data["id"], str(order.id))
         self.assertEqual(
-            response.data["items"][0]["product_name"],
-            "Test Black Set",
+            response.data["recovery_token"],
+            order.recovery_token,
         )
-        self.assertIn("payment_reference", response.data)
+        self.assertNotIn("customer_email", response.data)
 
     def test_empty_cart_cannot_create_order(self):
         self.cart.items.all().delete()
@@ -172,10 +171,23 @@ class OrderFlowTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(
-            Order.objects.filter(cart=self.cart).count(),
-            1,
+        self.assertEqual(Order.objects.filter(cart=self.cart).count(), 1)
+
+    def test_cart_with_existing_payment_reference_is_not_rebuilt(self):
+        order = self.create_order()
+        reference = "existing-payment-reference"
+        self.set_payment_reference(order, reference)
+
+        response = self.client.post(
+            "/api/orders/create/",
+            self.customer_details,
+            format="json",
         )
+
+        self.assertEqual(response.status_code, 409)
+        order.refresh_from_db()
+        self.assertEqual(order.payment_reference, reference)
+        self.assertEqual(order.total_amount, Decimal("50000.00"))
 
     @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
     @patch("orders.views.requests.post")
@@ -204,7 +216,7 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/initialize-payment/",
             {
-                "order_id": str(order.id),
+                **self.order_credentials(order),
                 "callback_url": (
                     "http://localhost:3000/payment/callback"
                 ),
@@ -228,10 +240,49 @@ class OrderFlowTests(TestCase):
         mock_post.assert_called_once()
 
     @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
+    @patch("orders.views.requests.post")
+    def test_initialize_payment_rejects_missing_or_invalid_token(
+        self, mock_post
+    ):
+        order = self.create_order()
+
+        for payload in (
+            {"order_id": str(order.id)},
+            {
+                "order_id": str(order.id),
+                "recovery_token": "incorrect-token",
+            },
+        ):
+            response = self.client.post(
+                "/api/orders/initialize-payment/",
+                payload,
+                format="json",
+            )
+            self.assertIn(response.status_code, (400, 403))
+
+        mock_post.assert_not_called()
+
+    @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
+    @patch("orders.views.requests.post")
+    def test_initialize_payment_rejects_existing_reference(
+        self, mock_post
+    ):
+        order = self.create_order()
+        self.set_payment_reference(order, "existing-reference")
+
+        response = self.client.post(
+            "/api/orders/initialize-payment/",
+            self.order_credentials(order),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 409)
+        mock_post.assert_not_called()
+
+    @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
     @patch("orders.views.requests.get")
     def test_successful_mocked_verification_marks_order_paid(
-        self,
-        mock_get,
+        self, mock_get
     ):
         order = self.create_order()
         reference = "mock-reference-456"
@@ -245,7 +296,7 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/verify-payment/",
             {
-                "order_id": str(order.id),
+                **self.order_credentials(order),
                 "reference": reference,
             },
             format="json",
@@ -257,10 +308,34 @@ class OrderFlowTests(TestCase):
             response.data["order"]["payment_reference"],
             reference,
         )
+        self.assertNotIn("customer_email", response.data["order"])
 
         order.refresh_from_db()
         self.assertEqual(order.payment_status, "PAID")
         mock_get.assert_called_once()
+
+    def test_verification_rejects_missing_or_invalid_token(self):
+        order = self.create_order()
+        reference = "token-required-reference"
+        self.set_payment_reference(order, reference)
+
+        for payload in (
+            {"order_id": str(order.id), "reference": reference},
+            {
+                **self.order_credentials(order),
+                "recovery_token": "incorrect-token",
+                "reference": reference,
+            },
+        ):
+            response = self.client.post(
+                "/api/orders/verify-payment/",
+                payload,
+                format="json",
+            )
+            self.assertIn(response.status_code, (400, 403))
+
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, "PENDING")
 
     @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
     @patch("orders.views.requests.get")
@@ -278,14 +353,13 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/verify-payment/",
             {
-                "order_id": str(order.id),
+                **self.order_credentials(order),
                 "reference": reference,
             },
             format="json",
         )
 
         self.assertEqual(response.status_code, 400)
-
         order.refresh_from_db()
         self.assertEqual(order.payment_status, "PENDING")
 
@@ -305,7 +379,7 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/verify-payment/",
             {
-                "order_id": str(order.id),
+                **self.order_credentials(order),
                 "reference": reference,
             },
             format="json",
@@ -320,8 +394,7 @@ class OrderFlowTests(TestCase):
     @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
     @patch("orders.views.requests.get")
     def test_wrong_order_metadata_does_not_mark_order_paid(
-        self,
-        mock_get,
+        self, mock_get
     ):
         order = self.create_order()
         reference = "mock-reference-wrong-order"
@@ -335,7 +408,7 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/verify-payment/",
             {
-                "order_id": str(order.id),
+                **self.order_credentials(order),
                 "reference": reference,
             },
             format="json",
@@ -350,8 +423,7 @@ class OrderFlowTests(TestCase):
     @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
     @patch("orders.views.requests.get")
     def test_pending_paystack_status_does_not_mark_order_paid(
-        self,
-        mock_get,
+        self, mock_get
     ):
         order = self.create_order()
         reference = "mock-reference-pending"
@@ -366,7 +438,7 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/verify-payment/",
             {
-                "order_id": str(order.id),
+                **self.order_credentials(order),
                 "reference": reference,
             },
             format="json",
@@ -378,6 +450,108 @@ class OrderFlowTests(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.payment_status, "PENDING")
 
+    def test_recover_paid_order_requires_valid_token(self):
+        order = self.create_order()
+        order.payment_status = "PAID"
+        order.payment_reference = "recover-reference"
+        order.save(
+            update_fields=["payment_status", "payment_reference"]
+        )
+
+        response = self.client.post(
+            "/api/orders/recover/",
+            {"order_id": str(order.id), "recovery_token": "wrong-token"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(
+            "/api/orders/recover/",
+            self.order_credentials(order),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["order"]["id"], str(order.id))
+        self.assertEqual(
+            response.data["order"]["payment_status"],
+            "PAID",
+        )
+        self.assertNotIn("customer_email", response.data["order"])
+
+    def test_recover_pending_order_without_reference_does_not_claim_paid(
+        self,
+    ):
+        order = self.create_order()
+
+        response = self.client.post(
+            "/api/orders/recover/",
+            self.order_credentials(order),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data["payment_status"], "PENDING")
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, "PENDING")
+
+    @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
+    @patch("orders.views.requests.get")
+    def test_recover_pending_order_verifies_existing_successful_payment(
+        self, mock_get
+    ):
+        order = self.create_order()
+        reference = "existing-successful-payment"
+        self.set_payment_reference(order, reference)
+
+        mock_get.return_value = self.mocked_verification_response(
+            reference,
+            order_id=order.id,
+        )
+
+        response = self.client.post(
+            "/api/orders/recover/",
+            self.order_credentials(order),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["order"]["payment_status"], "PAID")
+
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, "PAID")
+        self.assertEqual(order.payment_reference, reference)
+        mock_get.assert_called_once()
+
+    @override_settings(PAYSTACK_SECRET_KEY="sk_test_mock")
+    @patch("orders.views.requests.get")
+    def test_recover_pending_existing_transaction_does_not_claim_paid(
+        self, mock_get
+    ):
+        order = self.create_order()
+        reference = "existing-pending-payment"
+        self.set_payment_reference(order, reference)
+
+        mock_get.return_value = self.mocked_verification_response(
+            reference,
+            status="pending",
+            order_id=order.id,
+        )
+
+        response = self.client.post(
+            "/api/orders/recover/",
+            self.order_credentials(order),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["payment_status"], "PENDING")
+
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, "PENDING")
+        self.assertEqual(order.payment_reference, reference)
+        mock_get.assert_called_once()
+
     def test_delivery_method_requires_verified_payment(self):
         order = self.create_order()
         reference = "delivery-test-reference"
@@ -386,7 +560,7 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/set-delivery-method/",
             {
-                "order_id": str(order.id),
+                **self.order_credentials(order),
                 "reference": reference,
                 "delivery_method": "BOLT",
             },
@@ -409,7 +583,7 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/set-delivery-method/",
             {
-                "order_id": str(order.id),
+                **self.order_credentials(order),
                 "reference": "paid-delivery-reference",
                 "delivery_method": "STORE_PICKUP",
             },
@@ -420,6 +594,30 @@ class OrderFlowTests(TestCase):
 
         order.refresh_from_db()
         self.assertEqual(order.delivery_method, "STORE_PICKUP")
+
+    def test_delivery_rejects_invalid_recovery_token(self):
+        order = self.create_order()
+        order.payment_reference = "delivery-token-reference"
+        order.payment_status = "PAID"
+        order.save(
+            update_fields=["payment_reference", "payment_status"]
+        )
+
+        response = self.client.post(
+            "/api/orders/set-delivery-method/",
+            {
+                "order_id": str(order.id),
+                "recovery_token": "wrong-token",
+                "reference": order.payment_reference,
+                "delivery_method": "BOLT",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+        order.refresh_from_db()
+        self.assertIsNone(order.delivery_method)
 
     def test_invalid_delivery_method_is_rejected(self):
         order = self.create_order()
@@ -432,8 +630,8 @@ class OrderFlowTests(TestCase):
         response = self.client.post(
             "/api/orders/set-delivery-method/",
             {
-                "order_id": str(order.id),
-                "reference": "invalid-delivery-reference",
+                **self.order_credentials(order),
+                "reference": order.payment_reference,
                 "delivery_method": "UBER",
             },
             format="json",
